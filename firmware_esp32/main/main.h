@@ -23,5 +23,3 @@
 #include "esp_flash.h"
 
 #include "hidlink.h"
-#include "bt_hid_host.h"
-#include "usb.h"
