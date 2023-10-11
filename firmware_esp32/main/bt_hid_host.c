@@ -1,9 +1,9 @@
 #include "main.h"
 
-static const char *TAG = "gap";
+static const char *TAG = "BT_HID_HOST";
 
 
-void bt_hid_host_callback(esp_hidh_cb_event_t event, esp_hidh_cb_param_t *param) {
+void bt_hid_host_event_handler(esp_hidh_cb_event_t event, esp_hidh_cb_param_t *param) {
 
     switch (event) {
 

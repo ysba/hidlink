@@ -51,17 +51,15 @@ void hidlink_main_task() {
                     err = nvs_flash_init();    
                 }
                 if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "esp_bt_controller_init failed:  %s", esp_err_to_name(err));
+                    ESP_LOGE(TAG, "nvs_flash_init failed:  %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-
-                esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
 
                 if ((err = esp_bt_controller_init(&bt_cfg)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_controller_init failed:  %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-                else if ((err = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) {
+                else if ((err = esp_bt_controller_enable(ESP_BT_MODE_BTDM)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_controller_enable failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
@@ -73,12 +71,20 @@ void hidlink_main_task() {
                     ESP_LOGE(TAG, "esp_bluedroid_enable failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-                else if ((err = esp_bt_gap_register_callback(bt_gap_callback)) != ESP_OK) {
+                else if ((err = esp_bt_gap_register_callback(bt_gap_event_handler)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_gap_register_callback failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-                else if ((err = esp_bt_hid_host_register_callback(bt_hid_host_callback)) != ESP_OK) {
+                else if ((err = esp_bt_hid_host_register_callback(bt_hid_host_event_handler)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_hid_host_register_callback failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
+                else if ((err = esp_ble_gatts_register_callback(ble_gatts_event_handler)) != ESP_OK) {
+                    ESP_LOGE(TAG, "esp_ble_gatts_register_callback failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
+                else if ((err = esp_ble_gap_register_callback(ble_gap_event_handler)) != ESP_OK) {
+                    ESP_LOGE(TAG, "esp_ble_gap_register_callback failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
                 else if ((err = esp_bt_dev_set_device_name(dev_name)) != ESP_OK) {
@@ -93,13 +99,19 @@ void hidlink_main_task() {
                     ESP_LOGE(TAG, "esp_bt_hid_host_init failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-
-
-                // // #TODO: init ble api
-
+                else if ((err = esp_ble_gatts_app_register(ESP_SPP_APP_ID)) != ESP_OK) {
+                    ESP_LOGE(TAG, "esp_ble_gatts_app_register failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
+                else if ((err = esp_ble_gap_config_scan_rsp_data_raw(
+                        ble_gap_get_scan_data(),
+                        ble_gap_get_scan_data_len())) != ESP_OK) {
+                    ESP_LOGE(TAG, "esp_ble_gap_config_scan_rsp_data_raw failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
                 else {
+                    // success
                     ESP_LOGD(TAG, "%s, HIDLINK_STATE_API_INIT, ok", __func__);
-
                     hidlink.state = HIDLINK_STATE_IDLE;
                 }
                 break;

@@ -1,8 +1,8 @@
 #include "main.h"
 
-static const char *TAG = "gap";
+static const char *TAG = "BT_GAP";
 
-void bt_gap_callback(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
+void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
 
     // app_gap_cb_t *p_dev = &m_dev_info;
     // char bda_str[18];
