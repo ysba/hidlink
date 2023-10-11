@@ -12,9 +12,25 @@ static uint8_t spp_rx_char_uuid[16] =       {0xad,0xae,0x02,0x5f,0x93,0xe6,0x4e,
 static uint8_t spp_tx_char_uuid[16] =       {0xad,0xae,0x02,0x5f,0x93,0xe6,0x4e,0xa7,0xa6,0xf4,0x97,0xad,0x03,0x59,0x00,0x00};
 
 static struct {
-    uint8_t data[64];
+    uint8_t data[31];
     uint32_t len;
 } scan;
+
+
+static struct {
+    uint8_t data[31];
+    uint32_t len;
+} advertising;
+
+
+static esp_ble_adv_params_t spp_adv_params = {
+    .adv_int_min        = 0x20,
+    .adv_int_max        = 0x40,
+    .adv_type           = ADV_TYPE_IND,
+    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
+    .channel_map        = ADV_CHNL_ALL,
+    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+};
 
 
 uint8_t *ble_gap_get_scan_data() {
@@ -28,9 +44,31 @@ uint8_t *ble_gap_get_scan_data() {
 }
 
 
-uint32_t ble_gap_get_scan_data_len() {
+uint32_t ble_gap_get_scan_len() {
 
     return (scan.len);
+}
+
+
+uint8_t *ble_gap_get_advertising_data() {
+    memset(advertising.data, 0, sizeof(advertising.data));
+    advertising.len = 0;
+    advertising.data[advertising.len++] = 0x02;
+    advertising.data[advertising.len++] = 0x01;
+    advertising.data[advertising.len++] = 0x06;
+    advertising.data[advertising.len++] = strlen(HIDLINK_DEVICE_NAME) + 1;
+    advertising.data[advertising.len++] = 0x09;
+    strcpy((char *) &advertising.data[advertising.len], HIDLINK_DEVICE_NAME);
+    advertising.len += strlen(HIDLINK_DEVICE_NAME);
+
+    ESP_LOG_BUFFER_HEX_LEVEL(TAG, advertising.data, advertising.len, ESP_LOG_DEBUG);
+    return (advertising.data);
+}
+
+
+uint32_t ble_gap_get_advertising_len() {
+
+    return (advertising.len);
 }
 
 
@@ -80,7 +118,7 @@ void ble_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t 
 
         case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
             ESP_LOGD(TAG, "ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT");
-            //esp_ble_gap_start_advertising(&spp_adv_params);
+            esp_ble_gap_start_advertising(&spp_adv_params);
             break;
     
         case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
@@ -138,5 +176,3 @@ void ble_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t 
     }
 
 }
-
-

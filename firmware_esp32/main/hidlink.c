@@ -1,8 +1,8 @@
 #include "main.h"
 
-#define TAG          "hidlink"
+#define TAG          "HIDLINK"
 
-char *dev_name = "hidlink";
+char *dev_name = HIDLINK_DEVICE_NAME;
 
 typedef struct {
     hidlink_state_t state;
@@ -91,7 +91,7 @@ void hidlink_main_task() {
                     ESP_LOGE(TAG, "esp_bt_dev_set_device_name failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-                else if ((err = esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE)) != ESP_OK) {
+                else if ((err = esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_gap_set_scan_mode failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
@@ -105,10 +105,16 @@ void hidlink_main_task() {
                 }
                 else if ((err = esp_ble_gap_config_scan_rsp_data_raw(
                         ble_gap_get_scan_data(),
-                        ble_gap_get_scan_data_len())) != ESP_OK) {
+                        ble_gap_get_scan_len())) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_ble_gap_config_scan_rsp_data_raw failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
+                else if ((err = esp_ble_gap_config_adv_data_raw(
+                        ble_gap_get_advertising_data(),
+                        ble_gap_get_advertising_len())) != ESP_OK) {
+                    ESP_LOGE(TAG, "esp_ble_gap_config_scan_rsp_data_raw failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                } 
                 else {
                     // success
                     ESP_LOGD(TAG, "%s, HIDLINK_STATE_API_INIT, ok", __func__);

@@ -1,6 +1,8 @@
 #ifndef __HIDLINK__
 #define __HIDLINK__
 
+#define HIDLINK_DEVICE_NAME "hidlink"
+
 typedef enum {
     HIDLINK_STATE_API_INIT = 0,
     HIDLINK_STATE_API_DEINIT,
