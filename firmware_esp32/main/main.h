@@ -13,13 +13,18 @@
 #include "freertos/event_groups.h"
 
 #include "esp_system.h"
-#include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
-#include "nvs_flash.h"
-
-#include "sdkconfig.h"
 #include "esp_chip_info.h"
 #include "esp_flash.h"
+#include "sdkconfig.h"
+#include "nvs.h"
+#include "nvs_flash.h"
+
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#include "esp_bt_device.h"
+#include "esp_gap_bt_api.h"
+#include "esp_hidh_api.h"
 
 #include "hidlink.h"
