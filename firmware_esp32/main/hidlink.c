@@ -26,10 +26,6 @@ static void hidlink_init() {
     hidlink.state = HIDLINK_STATE_API_INIT;
 }
 
-void mock() {
-    ESP_LOGW(TAG, "test");
-}
-
 
 void hidlink_main_task() {
 
@@ -77,11 +73,11 @@ void hidlink_main_task() {
                     ESP_LOGE(TAG, "esp_bluedroid_enable failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-                else if ((err = esp_bt_gap_register_callback(mock)) != ESP_OK) {
+                else if ((err = esp_bt_gap_register_callback(bt_gap_callback)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_gap_register_callback failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
-                else if ((err = esp_bt_hid_host_register_callback(mock)) != ESP_OK) {
+                else if ((err = esp_bt_hid_host_register_callback(bt_hid_host_callback)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_hid_host_register_callback failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
@@ -104,8 +100,7 @@ void hidlink_main_task() {
                 else {
                     ESP_LOGD(TAG, "%s, HIDLINK_STATE_API_INIT, ok", __func__);
 
-                    //hidlink.state = HIDLINK_STATE_IDLE;
-                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                    hidlink.state = HIDLINK_STATE_IDLE;
                 }
                 break;
             }        
@@ -146,6 +141,7 @@ void hidlink_main_task() {
                 vTaskDelay(pdMS_TO_TICKS(1000));
 
                 // TODO: check scan command
+                // esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
 
                 // TODO: try to connect to paired device
                 

@@ -28,3 +28,5 @@
 #include "esp_hidh_api.h"
 
 #include "hidlink.h"
+#include "bt_gap.h"
+#include "bt_hid_host.h"
