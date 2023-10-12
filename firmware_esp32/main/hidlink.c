@@ -7,12 +7,17 @@ char *dev_name = HIDLINK_DEVICE_NAME;
 typedef struct {
     hidlink_state_t state;
     QueueHandle_t command_queue;
+    struct {
+        uint32_t index;
+        esp_bd_addr_t bd_addr[HIDLINK_DEVICE_BD_ADDR_LIST_LEN];
+    } full_device_list;
     union {
         uint32_t val;
         struct {
             bool scan_start:1;
         } bits;
     } flags;
+
 } hidlink_t;
 
 
@@ -29,6 +34,14 @@ static void hidlink_init() {
     }
 
     hidlink.state = HIDLINK_STATE_API_INIT;
+}
+
+
+static void hidlink_full_device_list() {
+    
+    hidlink.full_device_list.index = 0;
+    memset(hidlink.full_device_list.bd_addr, 0, sizeof(hidlink.full_device_list.bd_addr));
+    ESP_LOGW(TAG, "clearing %d bytes", sizeof(hidlink.full_device_list.bd_addr));
 }
 
 
@@ -170,6 +183,7 @@ void hidlink_main_task() {
 
                     if (command == HIDLINK_COMMAND_SCAN_START) {
                         ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_START", __func__);
+                        hidlink_full_device_list();
                         esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
                     }
                     else if (command == HIDLINK_COMMAND_SCAN_STOP) {
@@ -195,4 +209,29 @@ void hidlink_main_task() {
 void hidlink_set_command(hidlink_command_t command) {
     
     xQueueSend(hidlink.command_queue, &command, portMAX_DELAY);
+}
+
+
+bool hidlink_check_device_already_discovered(esp_bd_addr_t *device_bd_addr) {
+
+    bool ret_val = false;
+    uint32_t i;
+
+    for (i = 0; i < hidlink.full_device_list.index; i++) {
+
+        if (memcmp(&hidlink.full_device_list.bd_addr[i], device_bd_addr, sizeof(esp_bd_addr_t)) == 0) {
+            ret_val = true;
+            break;
+        }
+    }
+
+    return (ret_val);
+}
+
+
+void hidlink_add_discovered_device(esp_bd_addr_t *device_bd_addr) {
+
+    if (hidlink.full_device_list.index < HIDLINK_DEVICE_BD_ADDR_LIST_LEN) {
+        memcpy(&hidlink.full_device_list.bd_addr[hidlink.full_device_list.index++], device_bd_addr, sizeof(esp_bd_addr_t));
+    }
 }

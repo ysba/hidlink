@@ -2,6 +2,23 @@
 
 static const char *TAG = "BT_GAP";
 
+
+static char bda_str[18];
+
+
+static char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
+{
+    if (bda == NULL || str == NULL || size < 18) {
+        return NULL;
+    }
+
+    uint8_t *p = bda;
+    sprintf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
+            p[0], p[1], p[2], p[3], p[4], p[5]);
+    return str;
+}
+
+
 void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
 
     // app_gap_cb_t *p_dev = &m_dev_info;
@@ -13,6 +30,15 @@ void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
         case ESP_BT_GAP_DISC_RES_EVT: {
             ESP_LOGD(TAG, "%s, event ESP_BT_GAP_DISC_RES_EVT", __func__);
             //update_device_info(param);
+
+            if (hidlink_check_device_already_discovered(&param->disc_res.bda) == false) {
+                ESP_LOGI(TAG, "new device: %s", bda2str(param->disc_res.bda, bda_str, 18));
+                hidlink_add_discovered_device(&param->disc_res.bda);
+            }
+            else {
+                ESP_LOGD(TAG, "device already discovered: %s", bda2str(param->disc_res.bda, bda_str, 18));
+            }
+
             break;
         }
 

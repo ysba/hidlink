@@ -3,6 +3,8 @@
 
 #define HIDLINK_DEVICE_NAME "hidlink"
 
+#define HIDLINK_DEVICE_BD_ADDR_LIST_LEN     64
+
 typedef enum {
     HIDLINK_STATE_API_INIT = 0,
     HIDLINK_STATE_API_DEINIT,
@@ -19,5 +21,7 @@ typedef enum {
 
 void hidlink_main_task();
 void hidlink_set_command(hidlink_command_t command);
+void hidlink_add_discovered_device(esp_bd_addr_t *device_bd_addr);
+bool hidlink_check_device_already_discovered(esp_bd_addr_t *device_bd_addr);
 
 #endif
