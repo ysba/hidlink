@@ -6,11 +6,17 @@ char *dev_name = HIDLINK_DEVICE_NAME;
 
 typedef struct {
     hidlink_state_t state;
+    hidlink_status_t status;
     QueueHandle_t command_queue;
     struct {
         uint32_t index;
         esp_bd_addr_t bd_addr[HIDLINK_DEVICE_BD_ADDR_LIST_LEN];
     } full_device_list;
+    struct {
+        uint32_t index;
+        esp_bd_addr_t bd_addr[HIDLINK_DEVICES_NUMBER];
+        char name[HIDLINK_DEVICES_NUMBER][ESP_BT_GAP_MAX_BDNAME_LEN];
+    } hid_list;
     union {
         uint32_t val;
         struct {
@@ -33,15 +39,25 @@ static void hidlink_init() {
         ESP_LOGE(TAG, "%s, queue creation failed", __func__);
     }
 
+    hidlink.status = HIDLINK_STATUS_IDLE;
     hidlink.state = HIDLINK_STATE_API_INIT;
 }
 
 
-static void hidlink_full_device_list() {
+static void hidlink_clear_full_device_list() {
     
     hidlink.full_device_list.index = 0;
     memset(hidlink.full_device_list.bd_addr, 0, sizeof(hidlink.full_device_list.bd_addr));
-    ESP_LOGW(TAG, "clearing %d bytes", sizeof(hidlink.full_device_list.bd_addr));
+    ESP_LOGD(TAG, "clearing %d bytes", sizeof(hidlink.full_device_list.bd_addr));
+}
+
+
+static void hidlink_clear_hid_list() {
+
+    hidlink.hid_list.index = 0;
+    memset(hidlink.hid_list.bd_addr, 0, sizeof(hidlink.hid_list.bd_addr));
+    memset(hidlink.hid_list.name, 0, sizeof(hidlink.hid_list.name));
+    ESP_LOGD(TAG, "clearing %d + %d bytes", sizeof(hidlink.hid_list.bd_addr), sizeof(hidlink.hid_list.name));
 }
 
 
@@ -138,7 +154,7 @@ void hidlink_main_task() {
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 } 
                 else {
-                    // success
+                    // api init success
                     ESP_LOGD(TAG, "%s, HIDLINK_STATE_API_INIT, ok", __func__);
                     hidlink.state = HIDLINK_STATE_IDLE;
                 }
@@ -182,21 +198,42 @@ void hidlink_main_task() {
                 if (xQueueReceive(hidlink.command_queue, &command, pdMS_TO_TICKS(5000)) == pdTRUE) {
 
                     if (command == HIDLINK_COMMAND_SCAN_START) {
-                        ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_START", __func__);
-                        hidlink_full_device_list();
-                        esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
+                        if (hidlink.status != HIDLINK_STATUS_SCANNING) {
+                            ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_START", __func__);
+                            hidlink_clear_full_device_list();
+                            hidlink_clear_hid_list();
+                            hidlink.status = HIDLINK_STATUS_SCANNING;
+                            esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
+                        }
                     }
                     else if (command == HIDLINK_COMMAND_SCAN_STOP) {
-                        ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_STOP", __func__);
-                        esp_bt_gap_cancel_discovery();
-                        // send results to app
+                        if (hidlink.status == HIDLINK_STATUS_SCANNING) {
+                            ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_STOP", __func__);
+                            esp_bt_gap_cancel_discovery();
+                        }
+                    }
+                    else if (command == HIDLINK_COMMAND_SCAN_DONE) {
+                        ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_DONE", __func__);
+                        hidlink.status = HIDLINK_STATUS_IDLE;
+
+                        ESP_LOGI(TAG, "hid devices found during scan: %lu", hidlink.hid_list.index);
+                        
+                        if (hidlink.hid_list.index != 0) {
+
+                            uint32_t i;
+                            char bda_str[18];
+
+                            for(i = 0; i < hidlink.hid_list.index; i++) {
+                                ESP_LOGI(TAG, "%02lu: %s [%s]", 
+                                    i + 1,
+                                    hidlink.hid_list.name[i],
+                                    bda2str(hidlink.hid_list.bd_addr[i], bda_str, 18));
+                            }
+                        }
+                    
+                        // #TODO: send results to app
                     }
                 }
-                else {
-
-                    //ESP_LOGD(TAG, "%s, idle loop", __func__);
-                }
-
                 break;
             }        
         }
@@ -233,5 +270,27 @@ void hidlink_add_discovered_device(esp_bd_addr_t *device_bd_addr) {
 
     if (hidlink.full_device_list.index < HIDLINK_DEVICE_BD_ADDR_LIST_LEN) {
         memcpy(&hidlink.full_device_list.bd_addr[hidlink.full_device_list.index++], device_bd_addr, sizeof(esp_bd_addr_t));
+    }
+}
+
+
+void hidlink_add_hid_device(esp_bd_addr_t *bd_addr, char *name) {
+
+    uint32_t i;
+    uint32_t name_len;
+
+    i = hidlink.hid_list.index;
+
+    name_len = strlen(name);
+
+    if (name_len > (ESP_BT_GAP_MAX_BDNAME_LEN - 1))
+        name_len = ESP_BT_GAP_MAX_BDNAME_LEN - 1;
+
+    if (i < HIDLINK_DEVICES_NUMBER) {
+
+        memcpy(&hidlink.hid_list.bd_addr[i], bd_addr, sizeof(esp_bd_addr_t));
+        memset(&hidlink.hid_list.name[i], 0, ESP_BT_GAP_MAX_BDNAME_LEN);
+        memcpy(&hidlink.hid_list.name[i], name, name_len);
+        hidlink.hid_list.index++;
     }
 }

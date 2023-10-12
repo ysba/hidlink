@@ -6,7 +6,7 @@ static const char *TAG = "BT_GAP";
 static char bda_str[18];
 
 
-static char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
+char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
 {
     if (bda == NULL || str == NULL || size < 18) {
         return NULL;
@@ -21,19 +21,91 @@ static char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
 
 void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
 
-    // app_gap_cb_t *p_dev = &m_dev_info;
-    // char bda_str[18];
-    // char uuid_str[37];
-
     switch (event) {
 
         case ESP_BT_GAP_DISC_RES_EVT: {
             ESP_LOGD(TAG, "%s, event ESP_BT_GAP_DISC_RES_EVT", __func__);
-            //update_device_info(param);
 
             if (hidlink_check_device_already_discovered(&param->disc_res.bda) == false) {
-                ESP_LOGI(TAG, "new device: %s", bda2str(param->disc_res.bda, bda_str, 18));
+
+                uint32_t i;
+                esp_bt_gap_dev_prop_t *property;
+                uint32_t cod = 0;
+                int32_t rssi = -129; /* invalid value */
+                uint8_t *bdname = NULL;
+                uint32_t bdname_len = 0;
+                uint8_t *eir = NULL;
+                uint8_t eir_len = 0;
+                
                 hidlink_add_discovered_device(&param->disc_res.bda);
+
+                ESP_LOGI(TAG, "device found: %s", bda2str(param->disc_res.bda, bda_str, 18));
+                ESP_LOGD(TAG, "number of properties: %d", param->disc_res.num_prop);
+                
+                for (i = 0; i < param->disc_res.num_prop; i++) {
+                    
+                    property = param->disc_res.prop + i;
+
+                    switch (property->type) {
+
+                        case ESP_BT_GAP_DEV_PROP_COD: {
+                            cod = *(uint32_t *)(property->val);
+                            ESP_LOGD(TAG, "--class of device: 0x%"PRIx32, cod);
+                            break;
+                        }
+
+                        case ESP_BT_GAP_DEV_PROP_RSSI: {
+                            rssi = *(int8_t *)(property->val);
+                            ESP_LOGD(TAG, "--rssi: %"PRId32, rssi);
+                            break;
+                        }
+
+                        case ESP_BT_GAP_DEV_PROP_BDNAME: {
+                            if (property->len < ESP_BT_GAP_MAX_BDNAME_LEN)
+                                bdname_len = property->len;
+                            else
+                                bdname_len = ESP_BT_GAP_MAX_BDNAME_LEN;
+                            bdname = (uint8_t *)(property->val);
+                            ESP_LOGD(TAG, "--name: %s", bdname);
+                            break;
+                        }
+
+                        case ESP_BT_GAP_DEV_PROP_EIR: {
+                            eir_len = property->len;
+                            eir = (uint8_t *)(property->val);
+                            ESP_LOGD(TAG, "--extended inquiry response:");
+                            ESP_LOG_BUFFER_HEX_LEVEL(TAG, eir, eir_len, ESP_LOG_DEBUG);
+                            break;
+                        }
+
+                        default: {
+                            ESP_LOGD(TAG, "--unexpected property: %d", property->type);
+                            break;
+                        }
+                    }
+                }
+
+                if (!esp_bt_gap_is_valid_cod(cod)) {
+
+                    ESP_LOGW(TAG, "invalid class of device: 0x%04lx", cod);
+                    break;
+                }
+
+                if (esp_bt_gap_get_cod_major_dev(cod) != ESP_BT_COD_MAJOR_DEV_PERIPHERAL) {
+                    
+                    ESP_LOGW(TAG, "device is not PERIPHERAL");
+                    break;
+                }
+
+                
+                if (bdname_len == 0) {
+                    ESP_LOGD(TAG, "name not available, requesting remote device name");
+                    esp_bt_gap_read_remote_name(param->disc_res.bda);
+                }
+                else {
+                    hidlink_add_hid_device(&param->disc_res.bda, (char *) bdname);
+                    ESP_LOGI(TAG, "device added %s to hidlink list!", bda2str(param->disc_res.bda, bda_str, 18));
+                }
             }
             else {
                 ESP_LOGD(TAG, "device already discovered: %s", bda2str(param->disc_res.bda, bda_str, 18));
@@ -50,60 +122,29 @@ void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
             }
             else if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
                 ESP_LOGD(TAG, "%s, device discovery stopped", __func__);
+                hidlink_set_command(HIDLINK_COMMAND_SCAN_DONE);
             }
             else {
                 ESP_LOGD(TAG, "%s, unknown discovery state: %d", __func__, param->disc_st_chg.state);
             }
-            
-            //     if ( (p_dev->state == APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE ||
-            //             p_dev->state == APP_GAP_STATE_DEVICE_DISCOVERING)
-            //             && p_dev->dev_found) {
-            //         p_dev->state = APP_GAP_STATE_SERVICE_DISCOVERING;
-            //         ESP_LOGI(TAG, "Discover services ...");
-            //         esp_bt_gap_get_remote_services(p_dev->bda);
-            //     }
-            // } else if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STARTED) {
-            //     ESP_LOGI(TAG, "Discovery started.");
-            // }
             break;
         }
 
         case ESP_BT_GAP_RMT_SRVCS_EVT: {
-            ESP_LOGD(TAG, "%s, event ESP_BT_GAP_RMT_SRVCS_EVT", __func__);
-            // if (memcmp(param->rmt_srvcs.bda, p_dev->bda, ESP_BD_ADDR_LEN) == 0 &&
-            //         p_dev->state == APP_GAP_STATE_SERVICE_DISCOVERING) {
-            //     p_dev->state = APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE;
-            //     if (param->rmt_srvcs.stat == ESP_BT_STATUS_SUCCESS) {
-            //         ESP_LOGI(TAG, "Services for device %s found",  bda2str(p_dev->bda, bda_str, 18));
-            //         for (int i = 0; i < param->rmt_srvcs.num_uuids; i++) {
-            //             esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
-            //             ESP_LOGI(TAG, "--%s", uuid2str(u, uuid_str, 37));
-            //         }
-
-            //         esp_bt_gap_read_remote_name(p_dev->bda);
-            //     } else {
-            //         ESP_LOGI(TAG, "Services for device %s not found",  bda2str(p_dev->bda, bda_str, 18));
-            //     }
-            // }
+            ESP_LOGD(TAG, "%s, event ESP_BT_GAP_RMT_SRVCS_EVT", __func__);    
             break;
         }
     
         case ESP_BT_GAP_READ_REMOTE_NAME_EVT: {
             ESP_LOGD(TAG, "%s, event ESP_BT_GAP_READ_REMOTE_NAME_EVT", __func__);
-            // ESP_LOGI(TAG, "%s, name: %s", __func__, param->read_rmt_name.rmt_name);
-            // esp_bt_hid_host_connect(p_dev->bda);
+            ESP_LOGI(TAG, "--name: %s", param->read_rmt_name.rmt_name);
+            hidlink_add_hid_device(&param->read_rmt_name.bda, (char *) param->read_rmt_name.rmt_name);
+            ESP_LOGI(TAG, "device added %s to hidlink list!", bda2str(param->read_rmt_name.bda, bda_str, 18));
             break;
         }
 
         case ESP_BT_GAP_ACL_CONN_CMPL_STAT_EVT: {
             ESP_LOGD(TAG, "%s, event ESP_BT_GAP_ACL_CONN_CMPL_STAT_EVT", __func__);
-            
-            // ESP_LOGI(TAG, "%s, bda %s, stat %d, handle %d", 
-            //     __func__, 
-            //     bda2str(param->acl_conn_cmpl_stat.bda, bda_str, 18),
-            //     param->acl_conn_cmpl_stat.stat,
-            //     param->acl_conn_cmpl_stat.handle);
-
             break;
         }
 

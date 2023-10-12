@@ -97,7 +97,6 @@ static char *esp_key_type_to_str(esp_ble_key_type_t key_type) {
 void ble_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
 
     esp_err_t err;
-    esp_ble_gatts_cb_param_t *p_data = (esp_ble_gatts_cb_param_t *) param;
 
     switch (event) {
 
