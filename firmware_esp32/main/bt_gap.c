@@ -18,8 +18,17 @@ void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
 
         case ESP_BT_GAP_DISC_STATE_CHANGED_EVT: {
             ESP_LOGD(TAG, "%s, event ESP_BT_GAP_DISC_STATE_CHANGED_EVT", __func__);
-            // if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
-            //     ESP_LOGI(TAG, "Device discovery stopped.");
+
+            if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STARTED) {
+                ESP_LOGD(TAG, "%s, device discovery started", __func__);
+            }
+            else if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
+                ESP_LOGD(TAG, "%s, device discovery stopped", __func__);
+            }
+            else {
+                ESP_LOGD(TAG, "%s, unknown discovery state: %d", __func__, param->disc_st_chg.state);
+            }
+            
             //     if ( (p_dev->state == APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE ||
             //             p_dev->state == APP_GAP_STATE_DEVICE_DISCOVERING)
             //             && p_dev->dev_found) {

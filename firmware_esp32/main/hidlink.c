@@ -6,12 +6,13 @@ char *dev_name = HIDLINK_DEVICE_NAME;
 
 typedef struct {
     hidlink_state_t state;
-    // union {
-    //     uint16_t val;
-    //     struct {
-    //         bool timer_skip:1;
-    //     } bits;
-    // } flags;
+    QueueHandle_t command_queue;
+    union {
+        uint32_t val;
+        struct {
+            bool scan_start:1;
+        } bits;
+    } flags;
 } hidlink_t;
 
 
@@ -21,7 +22,11 @@ static hidlink_t hidlink;
 static void hidlink_init() {
     memset(&hidlink, 0, sizeof(typeof(hidlink)));
     
-    /* place other initialization code here */
+    hidlink.command_queue = xQueueCreate(10, sizeof(hidlink_command_t));
+
+    if (hidlink.command_queue == NULL) {
+        ESP_LOGE(TAG, "%s, queue creation failed", __func__);
+    }
 
     hidlink.state = HIDLINK_STATE_API_INIT;
 }
@@ -159,39 +164,35 @@ void hidlink_main_task() {
             
             case HIDLINK_STATE_IDLE: {
 
-                //ESP_LOGD(TAG, "loop idle");
-                vTaskDelay(pdMS_TO_TICKS(1000));
+                hidlink_command_t command;
 
-                // TODO: check scan command
-                // esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
+                if (xQueueReceive(hidlink.command_queue, &command, pdMS_TO_TICKS(5000)) == pdTRUE) {
 
-                // TODO: try to connect to paired device
-                
+                    if (command == HIDLINK_COMMAND_SCAN_START) {
+                        ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_START", __func__);
+                        esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
+                    }
+                    else if (command == HIDLINK_COMMAND_SCAN_STOP) {
+                        ESP_LOGI(TAG, "%s, HIDLINK_COMMAND_SCAN_STOP", __func__);
+                        esp_bt_gap_cancel_discovery();
+                        // send results to app
+                    }
+                }
+                else {
+
+                    //ESP_LOGD(TAG, "%s, idle loop", __func__);
+                }
+
                 break;
             }        
-            
-            case HIDLINK_STATE_SCAN_START: {
-
-                esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
-                hidlink.state = HIDLINK_STATE_SCAN_WAIT;
-                break;
-            }        
-            
-            case HIDLINK_STATE_SCAN_WAIT: {
-                
-                hidlink.state = HIDLINK_STATE_SCAN_RESULTS;
-                break;
-            }        
-            
-            case HIDLINK_STATE_SCAN_RESULTS: {
-                
-                hidlink.state = HIDLINK_STATE_IDLE;
-                break;
-            }        
-            
-
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
+}
+
+
+void hidlink_set_command(hidlink_command_t command) {
+    
+    xQueueSend(hidlink.command_queue, &command, portMAX_DELAY);
 }

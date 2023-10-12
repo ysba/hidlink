@@ -196,23 +196,42 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
             ESP_LOGD(TAG, "ESP_GATTS_WRITE_EVT");
             ESP_LOG_BUFFER_HEX_LEVEL(TAG, p_data->write.value, p_data->write.len, ESP_LOG_DEBUG);
 
-            res = find_char_and_desr_index(p_data->write.handle);
 
-            if(res == BLE_CDTP_INDEX_DATA_VAL) {
+            if (p_data->write.len >= 2) {
 
-                char mock[] = "test response";
+                if (p_data->write.value[0] == 0xaa) {
 
-                esp_ble_gatts_send_indicate(
-                    gatts_if,
-                    p_data->write.conn_id,                          // uint16_t conn_id
-                    p_data->write.handle,                           // uint16_t attr_handle
-                    strlen(mock),                                   // uint16_t value_len
-                    (uint8_t *) mock,                               // uint8_t *value
-                    false);                                         // receive confirmation  
+                    if (p_data->write.value[1] == 0x01) {
 
+                        hidlink_set_command(HIDLINK_COMMAND_SCAN_START);
+                    }
+                    else {
+
+                        hidlink_set_command(HIDLINK_COMMAND_SCAN_STOP);
+                    }
+                }
             }
 
-                                                    // bool need_confirm (false = notify, true = indicate)
+            // res = find_char_and_desr_index(p_data->write.handle);
+
+            // if(res == BLE_CDTP_INDEX_DATA_VAL) {
+
+            //     char mock[] = "test response";
+
+            //     esp_ble_gatts_send_indicate(
+            //         gatts_if,
+            //         p_data->write.conn_id,                          // uint16_t conn_id
+            //         p_data->write.handle,                           // uint16_t attr_handle
+            //         strlen(mock),                                   // uint16_t value_len
+            //         (uint8_t *) mock,                               // uint8_t *value
+            //         false);                                         // receive confirmation  
+
+            // }
+
+
+
+
+            // bool need_confirm (false = notify, true = indicate)
 
 
             // int handle = dvis_get_handle_from_conn_id(p_data->connect.conn_id);
