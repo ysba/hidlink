@@ -1,6 +1,6 @@
 # ESP32 Firmware
-
-## Bluetooth Low Energy - BLE
+## Bluetooth Low Energy (BLE)
+The BLE interface is used in ``hidlink`` for configuration using the mobile app.
 ### Advertisement packet
 ``02 01 06 08 09 68 69 64 6c 69 6e 6b``
 ### Device name
@@ -31,3 +31,6 @@
 ##### 0x03 Attach to HID
 
 ##### 0x04 Detach from HID
+
+## Bluetooth Classic (BR/EDR)
+The Bluetooth Classic interface is used to interact to HID peripherals. It is used first to scan deviced around. Once one device is choosen by the mobile app, ``hidlink`` will keep connected to it.
