@@ -91,6 +91,10 @@ void hidlink_main_task() {
                     ESP_LOGE(TAG, "esp_bt_dev_set_device_name failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 }
+                else if ((err = esp_ble_gap_set_device_name(dev_name)) != ESP_OK) {
+                    ESP_LOGE(TAG, "esp_ble_gap_set_device_name failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
                 else if ((err = esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE)) != ESP_OK) {
                     ESP_LOGE(TAG, "esp_bt_gap_set_scan_mode failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
@@ -155,7 +159,7 @@ void hidlink_main_task() {
             
             case HIDLINK_STATE_IDLE: {
 
-                ESP_LOGD(TAG, "loop idle");
+                //ESP_LOGD(TAG, "loop idle");
                 vTaskDelay(pdMS_TO_TICKS(1000));
 
                 // TODO: check scan command

@@ -35,3 +35,4 @@
 #include "bt_hid_host.h"
 #include "ble_gap.h"
 #include "ble_gatts.h"
+#include "ble_cdtp.h"
