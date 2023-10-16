@@ -7,6 +7,7 @@ static char bda_str[18];
 
 
 char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
+char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
 {
     if (bda == NULL || str == NULL || size < 18) {
         return NULL;
@@ -40,7 +41,7 @@ void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
                 hidlink_add_discovered_device(&param->disc_res.bda);
 
                 ESP_LOGI(TAG, "device found: %s", bda2str(param->disc_res.bda, bda_str, 18));
-                ESP_LOGI(TAG, "number of properties: %d", param->disc_res.num_prop);
+                ESP_LOGD(TAG, "number of properties: %d", param->disc_res.num_prop);
                 
                 for (i = 0; i < param->disc_res.num_prop; i++) {
                     
@@ -50,13 +51,13 @@ void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
 
                         case ESP_BT_GAP_DEV_PROP_COD: {
                             cod = *(uint32_t *)(property->val);
-                            ESP_LOGI(TAG, "--class of device: 0x%"PRIx32, cod);
+                            ESP_LOGD(TAG, "--class of device: 0x%"PRIx32, cod);
                             break;
                         }
 
                         case ESP_BT_GAP_DEV_PROP_RSSI: {
                             rssi = *(int8_t *)(property->val);
-                            ESP_LOGI(TAG, "--rssi: %"PRId32, rssi);
+                            ESP_LOGD(TAG, "--rssi: %"PRId32, rssi);
                             break;
                         }
 
@@ -66,20 +67,20 @@ void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
                             else
                                 bdname_len = ESP_BT_GAP_MAX_BDNAME_LEN;
                             bdname = (uint8_t *)(property->val);
-                            ESP_LOGI(TAG, "--name: %s", bdname);
+                            ESP_LOGD(TAG, "--name: %s", bdname);
                             break;
                         }
 
                         case ESP_BT_GAP_DEV_PROP_EIR: {
                             eir_len = property->len;
                             eir = (uint8_t *)(property->val);
-                            ESP_LOGI(TAG, "--extended inquiry response:");
-                            ESP_LOG_BUFFER_HEX_LEVEL(TAG, eir, eir_len, ESP_LOG_INFO);
+                            ESP_LOGD(TAG, "--extended inquiry response:");
+                            ESP_LOG_BUFFER_HEX_LEVEL(TAG, eir, eir_len, ESP_LOG_DEBUG);
                             break;
                         }
 
                         default: {
-                            ESP_LOGI(TAG, "--unexpected property: %d", property->type);
+                            ESP_LOGD(TAG, "--unexpected property: %d", property->type);
                             break;
                         }
                     }
