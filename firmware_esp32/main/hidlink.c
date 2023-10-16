@@ -8,15 +8,40 @@ typedef struct {
     hidlink_state_t state;
     hidlink_status_t status;
     QueueHandle_t command_queue;
+    
     struct {
         uint32_t index;
         esp_bd_addr_t bd_addr[HIDLINK_DEVICE_BD_ADDR_LIST_LEN];
     } full_device_list;
+    
     struct {
         uint32_t index;
         esp_bd_addr_t bd_addr[HIDLINK_DEVICES_NUMBER];
         char name[HIDLINK_DEVICES_NUMBER][ESP_BT_GAP_MAX_BDNAME_LEN];
     } hid_list;
+
+    struct {
+        hidlink_protocol_state_t state;
+        uint8_t *buffer;
+        uint32_t push;
+        uint32_t data_count;
+    } rx;
+
+    struct {
+        esp_gatt_if_t gatts_if;
+        uint16_t conn_id;
+        uint16_t chr_handle;
+        esp_bd_addr_t remote_bda;
+        uint16_t mtu_size;
+        union {
+            uint32_t val;
+            struct {
+                uint32_t notify_enable:1;
+                uint32_t indicate_enable:1;
+            } bits;
+        } flags;
+    } ble;
+    
     union {
         uint32_t val;
         struct {
@@ -38,6 +63,15 @@ static void hidlink_init() {
     if (hidlink.command_queue == NULL) {
         ESP_LOGE(TAG, "%s, queue creation failed", __func__);
     }
+
+    hidlink.rx.state = HIDLINK_PROTOCOL_STATE_HEADER;
+    hidlink.rx.buffer = NULL;
+    hidlink.rx.push = 0;
+    hidlink.rx.buffer = (uint8_t *) pvPortMalloc(HIDLINK_PROTOCOL_BUFFER_LEN * sizeof(uint8_t));
+    if (hidlink.rx.buffer == NULL) {
+        ESP_LOGE(TAG, "rx buffer malloc error!");
+    }
+
 
     hidlink.status = HIDLINK_STATUS_IDLE;
     hidlink.state = HIDLINK_STATE_API_INIT;
@@ -293,4 +327,155 @@ void hidlink_add_hid_device(esp_bd_addr_t *bd_addr, char *name) {
         memcpy(&hidlink.hid_list.name[i], name, name_len);
         hidlink.hid_list.index++;
     }
+}
+
+
+
+            //     esp_ble_gatts_send_indicate(
+            //         gatts_if,
+            //         p_data->write.conn_id,                          // uint16_t conn_id
+            //         p_data->write.handle,                           // uint16_t attr_handle
+            //         strlen(mock),                                   // uint16_t value_len
+            //         (uint8_t *) mock,                               // uint8_t *value
+            //         false);                                         // receive confirmation  
+            // }
+
+
+static void hidlink_ble_command_get_status() {
+
+    ESP_LOGI(TAG, "%s", __func__);
+
+}
+
+
+static void hidlink_ble_command_start_scan() {
+
+    ESP_LOGI(TAG, "%s", __func__);
+}
+
+
+static void hidlink_ble_command_stop_scan() {
+
+    ESP_LOGI(TAG, "%s", __func__);
+}
+
+
+static void hidlink_ble_command_attach_to_peripheral() {
+
+    ESP_LOGI(TAG, "%s", __func__);
+}
+
+
+void hidlink_ble_protocol_parser(uint8_t *data, uint32_t len) {
+
+    uint8_t rx_data;
+
+    if (hidlink.rx.buffer == NULL) {
+        ESP_LOGE(TAG, "rx buffer invalid pointer!");
+    }
+    else {
+
+        while (len--) {
+
+            rx_data = *data++;
+
+            if (hidlink.rx.push < HIDLINK_PROTOCOL_BUFFER_LEN) {
+                hidlink.rx.buffer[hidlink.rx.push++] = rx_data;
+            }
+
+            switch (hidlink.rx.state) {
+
+                case HIDLINK_PROTOCOL_STATE_HEADER: {
+                    if (rx_data == 0x3e) {
+                        hidlink.rx.buffer[0] = rx_data;
+                        hidlink.rx.push = 1;
+                        hidlink.rx.state = HIDLINK_PROTOCOL_STATE_COMMAND;
+                    }
+                    break;
+                }
+
+                case HIDLINK_PROTOCOL_STATE_COMMAND: {
+                    if ((hidlink_protocol_command_t) rx_data < HIDLINK_PROTOCOL_COMMAND_MAX) {
+                        hidlink.rx.state = HIDLINK_PROTOCOL_STATE_LEN;
+                    }
+                    else {
+                        hidlink.rx.state = HIDLINK_PROTOCOL_STATE_HEADER;
+                    }
+                    break;
+                }
+
+                case HIDLINK_PROTOCOL_STATE_LEN: {
+                    if (rx_data == 0) {
+                        hidlink.rx.state = HIDLINK_PROTOCOL_STATE_CHECKSUM;
+                    }
+                    else if (rx_data < (HIDLINK_PROTOCOL_BUFFER_LEN - 3)) {
+                        hidlink.rx.data_count = rx_data;
+                        hidlink.rx.state = HIDLINK_PROTOCOL_STATE_DATA;
+                    }
+                    else {
+                        hidlink.rx.state = HIDLINK_PROTOCOL_STATE_HEADER;
+                    }
+
+                    break;
+                }
+
+                case HIDLINK_PROTOCOL_STATE_DATA: {
+                    if (--hidlink.rx.data_count == 0) {
+                        hidlink.rx.state = HIDLINK_PROTOCOL_STATE_CHECKSUM;
+                    }
+                    break;
+                }
+
+                case HIDLINK_PROTOCOL_STATE_CHECKSUM: {
+
+                    uint32_t i;
+                    uint8_t checksum = 0;
+
+                    for (i = 0; i < hidlink.rx.push; i++) {
+                        checksum += hidlink.rx.buffer[i];
+                    }
+
+                    if (checksum == 0) {
+
+                        switch ((hidlink_protocol_command_t) hidlink.rx.buffer[1]) {
+
+                            case HIDLINK_PROTOCOL_COMMAND_GET_STATUS: {
+                                hidlink_ble_command_get_status();
+                                break;
+                            }
+
+                            case HIDLINK_PROTOCOL_COMMAND_START_SCAN: {
+                                hidlink_ble_command_start_scan();
+                                break;
+                            }
+
+                            case HIDLINK_PROTOCOL_COMMAND_STOP_SCAN: {
+                                hidlink_ble_command_stop_scan();
+                                break;
+                            }
+
+                            case HIDLINK_PROTOCOL_COMMAND_ATTACH_TO_PERIPHERAL: {
+                                hidlink_ble_command_attach_to_peripheral();
+                                break;
+                            }
+
+                            default: {
+                                ESP_LOGW(TAG, "invalid command!");
+                            }
+                        }
+                    }
+
+                    hidlink.rx.state = HIDLINK_PROTOCOL_STATE_HEADER;
+
+                    break;
+                }
+            }
+        }
+    }    
+}
+
+
+void hidlink_ble_set_char_handle(uint16_t char_handle) {
+
+    hidlink.ble.chr_handle = char_handle;
 }

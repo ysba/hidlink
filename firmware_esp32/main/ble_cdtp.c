@@ -192,101 +192,13 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
     	/* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
         /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
         case ESP_GATTS_WRITE_EVT: {
-    	    
             ESP_LOGD(TAG, "ESP_GATTS_WRITE_EVT");
             ESP_LOG_BUFFER_HEX_LEVEL(TAG, p_data->write.value, p_data->write.len, ESP_LOG_DEBUG);
-
-
-            if (p_data->write.len >= 2) {
-
-                if (p_data->write.value[0] == 0xaa) {
-
-                    if (p_data->write.value[1] == 0x01) {
-
-                        hidlink_set_command(HIDLINK_COMMAND_SCAN_START);
-                    }
-                    else {
-
-                        hidlink_set_command(HIDLINK_COMMAND_SCAN_STOP);
-                    }
-                }
+            res = find_char_and_desr_index(p_data->write.handle);
+            if (res == BLE_CDTP_INDEX_DATA_VAL) {
+                hidlink_ble_set_char_handle(cdtp_handle_table[BLE_CDTP_INDEX_DATA_VAL]);
+                hidlink_ble_protocol_parser(p_data->write.value, p_data->write.len);
             }
-
-            // res = find_char_and_desr_index(p_data->write.handle);
-
-            // if(res == BLE_CDTP_INDEX_DATA_VAL) {
-
-            //     char mock[] = "test response";
-
-            //     esp_ble_gatts_send_indicate(
-            //         gatts_if,
-            //         p_data->write.conn_id,                          // uint16_t conn_id
-            //         p_data->write.handle,                           // uint16_t attr_handle
-            //         strlen(mock),                                   // uint16_t value_len
-            //         (uint8_t *) mock,                               // uint8_t *value
-            //         false);                                         // receive confirmation  
-
-            // }
-
-
-
-
-            // bool need_confirm (false = notify, true = indicate)
-
-
-            // int handle = dvis_get_handle_from_conn_id(p_data->connect.conn_id);
-
-            // if(handle >= 0 && handle < DVIS_PARSER_INSTANCES) {
-
-            //     res = find_char_and_desr_index(p_data->write.handle);
-
-            //     // ESP_LOGD(TAG, 
-            //     //     "write, conn id %d, handle %d, res %d",
-            //     //     p_data->connect.conn_id,
-            //     //     handle,
-            //     //     res
-            //     // );
-
-            //     //if(p_data->write.is_prep == false) {
-
-            //         //ESP_LOGD(TAG, "write prep = false");
-
-            //         if(res == SPP_IDX_SPP_TX_VAL) {
-
-            //             // write to tx characteristic
-            //             ESP_LOGD(TAG, "%s, ESP_GATTS_WRITE_EVT, %d bytes", 
-            //                 __func__,
-            //                 p_data->write.len);
-
-            //             dvis_set_chr_handle(handle, spp_handle_table[SPP_IDX_SPP_RX_VAL]);
-            //             dvis_parser_process(handle, p_data->write.value, p_data->write.len);
-            //         }
-            //         else if(res == SPP_IDX_SPP_RX_CFG) {
-
-            //             // write to cccd of rx characteristic, enables notify or indication
-            //             memcpy(spp_rx_ccc, p_data->write.value, 2);
-            //             dvis_set_rx_cccd(handle, *((uint16_t *) spp_rx_ccc));
-            //             ESP_LOGD(TAG, "%s, ESP_GATTS_WRITE_EVT, setting rx cccd value %d", 
-            //                 __func__,
-            //                 *((uint16_t *) spp_rx_ccc));
-            //         }
-            //     // }
-            //     // else {
-
-            //     //     if(res == SPP_IDX_SPP_TX_VAL) {
-                        
-            //     //         ESP_LOGD(TAG, "write prep = true");
-            //     //         //store_wr_buffer(p_data); // #TODO: long write
-            //     //         ESP_LOG_BUFFER_HEX_LEVEL(TAG, p_data->write.value, p_data->write.len, ESP_LOG_DEBUG);
-            //     //     }
-            //     // }
-            // }
-            // else {
-
-            //     ESP_LOGW(TAG, "%s, ESP_GATTS_WRITE_EVT, write error, invalid handle %d", 
-            //         __func__,
-            //         handle);
-            // }
       	 	break;
     	}
         /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */

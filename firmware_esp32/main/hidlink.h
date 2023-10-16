@@ -6,6 +6,8 @@
 #define HIDLINK_DEVICE_BD_ADDR_LIST_LEN     64
 #define HIDLINK_DEVICES_NUMBER              16
 
+#define HIDLINK_PROTOCOL_BUFFER_LEN         64
+
 typedef enum {
     HIDLINK_STATE_API_INIT = 0,
     HIDLINK_STATE_API_DEINIT,
@@ -28,10 +30,31 @@ typedef enum {
 } hidlink_status_t; 
 
 
+typedef enum {
+    HIDLINK_PROTOCOL_STATE_HEADER = 0,
+    HIDLINK_PROTOCOL_STATE_COMMAND,
+    HIDLINK_PROTOCOL_STATE_LEN,
+    HIDLINK_PROTOCOL_STATE_DATA,
+    HIDLINK_PROTOCOL_STATE_CHECKSUM,
+} hidlink_protocol_state_t;
+
+
+typedef enum {
+    HIDLINK_PROTOCOL_COMMAND_NONE = 0,
+    HIDLINK_PROTOCOL_COMMAND_GET_STATUS,
+    HIDLINK_PROTOCOL_COMMAND_START_SCAN,
+    HIDLINK_PROTOCOL_COMMAND_STOP_SCAN,
+    HIDLINK_PROTOCOL_COMMAND_ATTACH_TO_PERIPHERAL,
+    HIDLINK_PROTOCOL_COMMAND_PERIPHERAL_SCAN_DATA,
+    HIDLINK_PROTOCOL_COMMAND_MAX,
+} hidlink_protocol_command_t;
+
 void hidlink_main_task();
 void hidlink_set_command(hidlink_command_t command);
 void hidlink_add_discovered_device(esp_bd_addr_t *device_bd_addr);
 bool hidlink_check_device_already_discovered(esp_bd_addr_t *device_bd_addr);
 void hidlink_add_hid_device(esp_bd_addr_t *bd_addr, char *name);
+void hidlink_ble_protocol_parser(uint8_t *data, uint32_t len);
+void hidlink_ble_set_char_handle(uint16_t char_handle);
 
 #endif

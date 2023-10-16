@@ -6,9 +6,7 @@ static const char *TAG = "BT_GAP";
 static char bda_str[18];
 
 
-char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
-char *bda2str(esp_bd_addr_t bda, char *str, size_t size)
-{
+char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
     if (bda == NULL || str == NULL || size < 18) {
         return NULL;
     }
