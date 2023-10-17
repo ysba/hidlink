@@ -12,7 +12,7 @@ const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 const uint INPUT_PIN = 2;
 
 void led_blinking_task(void);
-void hid_task(void);
+//void hid_task(void);
 
 int main() {
     
@@ -20,30 +20,18 @@ int main() {
     gpio_set_dir(INPUT_PIN, GPIO_IN);
     gpio_pull_up(INPUT_PIN);
 
-    hidlink_uart_init();
-
-    // while (true) {
-    //     //printf("Hello, world!\n");
-    //     //sleep_ms(1000);
-
-    //     if (gpio_get(INPUT_PIN)) {
-    //         gpio_put(LED_PIN, 1);
-    //         sleep_ms(300);
-    //     }
-
-    //     gpio_put(LED_PIN, 0);
-    //     sleep_ms(300);
-    // }
-
     board_init();
-    tusb_init();
+    //tusb_init();
+    tud_init(BOARD_DEVICE_RHPORT_NUM);
+    //board_init_after_tusb();
+
+    hidlink_uart_init();
 
     board_led_write(false);
 
     while (1) {
-        tight_loop_contents();
-        //tud_task();
-        //led_blinking_task();
+        tud_task();
+        led_blinking_task();
         //hid_task();
     }
 }
@@ -79,42 +67,42 @@ void tud_resume_cb(void) {
 // USB HID
 //--------------------------------------------------------------------+
 
-void hid_task(void) {
+// void hid_task(void) {
 
-    // Poll every 10ms
-    const uint32_t interval_ms = 10;
-    static uint32_t start_ms = 0;
-    static bool has_keyboard_key = false;
-    uint32_t btn = 0;
+//     // Poll every 10ms
+//     const uint32_t interval_ms = 10;
+//     static uint32_t start_ms = 0;
+//     static bool has_keyboard_key = false;
+//     uint32_t btn = 0;
 
-    if (board_millis() - start_ms < interval_ms)
-        return;
+//     if (board_millis() - start_ms < interval_ms)
+//         return;
 
-    start_ms += interval_ms;
+//     start_ms += interval_ms;
 
-    btn = !gpio_get(INPUT_PIN);
+//     btn = !gpio_get(INPUT_PIN);
 
-    // Remote wakeup
-    if (tud_suspended() && btn) {
-        // Wake up host if we are in suspend mode
-        // and REMOTE_WAKEUP feature is enabled by host
-        tud_remote_wakeup();
-    } else if (tud_hid_ready()) {
-        if (btn) {
-            uint8_t keycode[6] = {
-                0
-            };
-            keycode[0] = HID_KEY_A;
-            tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, keycode);
-            has_keyboard_key = true;
-        } else {
-            // send empty key report if previously has key pressed
-            if (has_keyboard_key)
-                tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
-            has_keyboard_key = false;
-        }
-    }
-}
+//     // Remote wakeup
+//     if (tud_suspended() && btn) {
+//         // Wake up host if we are in suspend mode
+//         // and REMOTE_WAKEUP feature is enabled by host
+//         tud_remote_wakeup();
+//     } else if (tud_hid_ready()) {
+//         if (btn) {
+//             uint8_t keycode[6] = {
+//                 0
+//             };
+//             keycode[0] = HID_KEY_A;
+//             tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, keycode);
+//             has_keyboard_key = true;
+//         } else {
+//             // send empty key report if previously has key pressed
+//             if (has_keyboard_key)
+//                 tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
+//             has_keyboard_key = false;
+//         }
+//     }
+// }
 
 // Invoked when sent REPORT successfully to host
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t

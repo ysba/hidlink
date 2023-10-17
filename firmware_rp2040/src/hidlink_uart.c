@@ -15,19 +15,22 @@ static hidlink_uart_t hidlink_uart = {
 };
 
 
-bool flag = true;
-
 static void hidlink_uart_rx_isr() {
     
-    board_led_write(true);
-
     while (uart_is_readable(hidlink_uart.port)) {
         uint8_t data_rx = uart_getc(hidlink_uart.port);
-        // board_led_write(flag);
-        // if (flag == true)
-        //     flag = false;
-        // else 
-        //     flag = true;
+        
+        if (tud_suspended()) {
+            tud_remote_wakeup();
+        } 
+        else if (tud_hid_ready()) {
+            
+            // uint8_t keycode[6] = {0};
+            // keycode[0] = HID_KEY_A;
+            tud_hid_report(0, &data_rx, 1);
+            //tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, &data_rx);
+            
+        }
     }
 }
 
