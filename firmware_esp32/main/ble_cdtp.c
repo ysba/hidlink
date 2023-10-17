@@ -146,45 +146,15 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
 
         case ESP_GATTS_READ_EVT: {
 
-            // ESP_LOGD(TAG, "GATT_READ_EVT, conn_id %d, trans_id %d, handle %d", 
-            //     p_data->read.conn_id, 
-            //     p_data->read.trans_id, 
-            //     p_data->read.handle);
+            ESP_LOGD(TAG, "ESP_GATTS_READ_EVT, conn_id %d, trans_id %lu, handle %d", 
+                p_data->read.conn_id, 
+                p_data->read.trans_id, 
+                p_data->read.handle);
 
-            // take struct index according to handle
+            
             res = find_char_and_desr_index(p_data->read.handle);
-           
             if(res == BLE_CDTP_INDEX_DATA_VAL) {
-
                 ESP_LOGD(TAG, "ESP_GATTS_READ_EVT");
-                
-                // int handle;
-
-                // handle = dvis_get_handle_from_conn_id(p_data->connect.conn_id);
-
-                // if(handle >= 0 && handle < DVIS_PARSER_INSTANCES) {
-
-                //     ESP_LOGI(__func__, "read rx char");
-
-                //     esp_gatt_rsp_t rsp;
-                
-                //     memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
-                //     rsp.attr_value.handle = p_data->read.handle;
-                //     rsp.attr_value.len = 4;
-                //     rsp.attr_value.value[0] = 0x12;
-                //     rsp.attr_value.value[1] = 0x34;
-                //     rsp.attr_value.value[2] = 0x56;
-                //     rsp.attr_value.value[3] = 0x78;
-
-                //     esp_ble_gatts_send_response(
-                //         dvis[handle].ble.gatts_if,
-                //         p_data->read.conn_id,
-                //         p_data->read.trans_id,
-                //         ESP_GATT_OK,
-                //         &rsp
-                //         );
-                // }
-                
             }
 
             break;
@@ -196,8 +166,16 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
             ESP_LOG_BUFFER_HEX_LEVEL(TAG, p_data->write.value, p_data->write.len, ESP_LOG_DEBUG);
             res = find_char_and_desr_index(p_data->write.handle);
             if (res == BLE_CDTP_INDEX_DATA_VAL) {
+                ESP_LOGD(TAG, "BLE_CDTP_INDEX_DATA_VAL");
                 hidlink_ble_set_char_handle(cdtp_handle_table[BLE_CDTP_INDEX_DATA_VAL]);
                 hidlink_ble_protocol_parser(p_data->write.value, p_data->write.len);
+            }
+            else if (res == BLE_CDTP_INDEX_DATA_CFG) {
+                // write to cccd of data characteristic. can enable/disable notifications and indications
+                ESP_LOGD(TAG, "BLE_CDTP_INDEX_DATA_CFG");
+                memcpy(cdtp_data_ccc, p_data->write.value, 2);
+                hidlink_set_rx_cccd(*((uint16_t *) cdtp_data_ccc));
+                ESP_LOGI(TAG, "setting rx cccd value %u", *((uint16_t *) cdtp_data_ccc));
             }
       	 	break;
     	}
@@ -260,70 +238,22 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
         /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
         case ESP_GATTS_CONF_EVT: {
             ESP_LOGD(TAG, "ESP_GATTS_CONF_EVT");
-            // #TODO: use this event when the total amount of data to send is greater than mut.
+            // #TODO: use this event when the total amount of data to send is greater than mtu.
             // after every chunk of data sent, this event is called so the remaining data can be sent.
             break;
         }
         /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
         /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
     	case ESP_GATTS_CONNECT_EVT: {
-
             ESP_LOGD(TAG, "ESP_GATTS_CONNECT_EVT");
-
-            // int handle;
-
-            // handle = dvis_parser_create();
-
-            // if(handle >= 0 && handle < DVIS_PARSER_INSTANCES) {
-
-            //     ESP_LOGI(TAG, 
-            //         "connect evt, dvis_parser_create ok, handle %d, conn_id %d", 
-            //         handle, 
-            //         p_data->connect.conn_id
-            //     );
-
-            //     dvis_set_ble_data(handle, gatts_if, p_data->connect.conn_id, &p_data->connect.remote_bda);
-            // }
-            // else {
-
-            //     ESP_LOGE(TAG, "connect evt, dvis_parser_create error! ret code %d", handle);
-            //     esp_ble_gap_disconnect(p_data->connect.remote_bda);
-            // }
-
-            // reinicia advertising para permitir novas conexões
-            //esp_ble_gap_start_advertising(&cdtp_adv_params);
+            hidlink_set_ble_data(gatts_if, p_data->connect.conn_id, &p_data->connect.remote_bda);
         	break;
         }
         /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
         /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
     	case ESP_GATTS_DISCONNECT_EVT: {
-
             ESP_LOGD(TAG, "ESP_GATTS_CONNECT_EVT");
-
-            // int handle;
-
-            // handle = dvis_get_handle_from_conn_id(p_data->connect.conn_id);
-
-            // if(handle >= 0 && handle < DVIS_PARSER_INSTANCES) {
-
-            //     ESP_LOGI(TAG, 
-            //         "disconnect evt, conn_id %d, removing handle %d", 
-            //         p_data->connect.conn_id,
-            //         handle
-            //     );
-
-            //     dvis_parser_destroy(handle);
-
-            // }
-            // else {
-
-            //     ESP_LOGE(TAG, 
-            //         "disconnect evt, conn_id %d, invalid handle %d", 
-            //         p_data->connect.conn_id,
-            //         handle
-            //     );
-            // }
-
+            esp_bt_gap_cancel_discovery();
     	    esp_ble_gap_start_advertising(&cdtp_adv_params);
     	    break;
         }

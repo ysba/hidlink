@@ -24,7 +24,8 @@ typedef enum {
 
 
 typedef enum {
-    HIDLINK_STATUS_IDLE = 0,
+    HIDLINK_STATUS_NONE = 0,
+    HIDLINK_STATUS_IDLE,
     HIDLINK_STATUS_SCANNING,
     HIDLINK_STATUS_CONNECTED,
 } hidlink_status_t; 
@@ -56,5 +57,8 @@ bool hidlink_check_device_already_discovered(esp_bd_addr_t *device_bd_addr);
 void hidlink_add_hid_device(esp_bd_addr_t *bd_addr, char *name);
 void hidlink_ble_protocol_parser(uint8_t *data, uint32_t len);
 void hidlink_ble_set_char_handle(uint16_t char_handle);
+void hidlink_ble_set_mtu(uint16_t mtu);
+void hidlink_set_ble_data(esp_gatt_if_t gatts_if, uint16_t conn_id, esp_bd_addr_t *bda);
+void hidlink_set_rx_cccd(uint16_t val);
 
 #endif

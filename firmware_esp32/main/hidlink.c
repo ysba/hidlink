@@ -22,10 +22,17 @@ typedef struct {
 
     struct {
         hidlink_protocol_state_t state;
-        uint8_t *buffer;
+        uint8_t *data;
         uint32_t push;
         uint32_t data_count;
     } rx;
+
+    struct {
+        uint32_t len;
+        uint32_t index;
+        uint32_t task;
+        uint8_t *data;
+    } tx;
 
     struct {
         esp_gatt_if_t gatts_if;
@@ -65,11 +72,15 @@ static void hidlink_init() {
     }
 
     hidlink.rx.state = HIDLINK_PROTOCOL_STATE_HEADER;
-    hidlink.rx.buffer = NULL;
+    hidlink.rx.data = NULL;
     hidlink.rx.push = 0;
-    hidlink.rx.buffer = (uint8_t *) pvPortMalloc(HIDLINK_PROTOCOL_BUFFER_LEN * sizeof(uint8_t));
-    if (hidlink.rx.buffer == NULL) {
-        ESP_LOGE(TAG, "rx buffer malloc error!");
+    hidlink.rx.data = (uint8_t *) pvPortMalloc(HIDLINK_PROTOCOL_BUFFER_LEN * sizeof(uint8_t));
+    if (hidlink.rx.data == NULL) {
+        ESP_LOGE(TAG, "rx data malloc error!");
+    }
+    hidlink.tx.data = (uint8_t *) pvPortMalloc(HIDLINK_PROTOCOL_BUFFER_LEN * sizeof(uint8_t));
+    if (hidlink.tx.data == NULL) {
+        ESP_LOGE(TAG, "tx data malloc error!");
     }
 
 
@@ -331,38 +342,113 @@ void hidlink_add_hid_device(esp_bd_addr_t *bd_addr, char *name) {
 
 
 
-            //     esp_ble_gatts_send_indicate(
-            //         gatts_if,
-            //         p_data->write.conn_id,                          // uint16_t conn_id
-            //         p_data->write.handle,                           // uint16_t attr_handle
-            //         strlen(mock),                                   // uint16_t value_len
-            //         (uint8_t *) mock,                               // uint8_t *value
-            //         false);                                         // receive confirmation  
-            // }
+void hidlink_ble_indicate() {
+
+    uint32_t byte_to_send;
+
+    if(hidlink.tx.len != 0) {
+
+        // still got data to send
+
+        if(hidlink.tx.len <= (hidlink.ble.mtu_size - 8)) {
+
+            // if amount of data to send is less than mtu, send everything
+
+            byte_to_send = hidlink.tx.len;
+        }
+        else {
+
+            // if amout of data to send is greater than mtu, send mtu
+
+            byte_to_send = (hidlink.ble.mtu_size - 8);
+        }
+
+        hidlink.tx.len -= byte_to_send;
+
+        if(hidlink.ble.flags.bits.notify_enable || hidlink.ble.flags.bits.indicate_enable) {
+            
+            esp_ble_gatts_send_indicate(
+                hidlink.ble.gatts_if,
+                hidlink.ble.conn_id,
+                hidlink.ble.chr_handle,
+                byte_to_send,
+                &hidlink.tx.data[hidlink.tx.index],
+                true);
+
+            ESP_LOG_BUFFER_HEX_LEVEL(TAG, &hidlink.tx.data[hidlink.tx.index], byte_to_send, ESP_LOG_DEBUG);
+
+            hidlink.tx.index += byte_to_send;
+
+            ESP_LOGV(TAG, "%s, %lu sent, %lu remaining", 
+                __func__, 
+                byte_to_send, 
+                hidlink.tx.len);
+        }
+        // #TODO: enable write without indication or notify
+        else {
+
+        //     esp_ble_gatts_send_response();
+
+            ESP_LOGD(TAG, "%s, indicate and notify off", __func__);
+
+            hidlink.tx.len = 0;
+        }
+    }
+}
+            
+
+
+static void hidlink_ble_ack_response(uint8_t ack_val) {
+
+    uint8_t checksum = 0;
+    uint32_t i;
+
+    hidlink.tx.data[0] = 0x3c;
+    hidlink.tx.data[1] = hidlink.rx.data[1];
+    hidlink.tx.data[2] = 1;
+    hidlink.tx.data[3] = ack_val;
+
+    for (i = 0; i < 4; i++) {
+        checksum += hidlink.tx.data[i];
+    }
+
+    hidlink.tx.data[4] = (checksum ^ ((uint8_t) 0xff)) + 1;
+
+    hidlink.tx.len = 5;
+    hidlink.tx.index = 0;
+
+    hidlink_ble_indicate();
+}
 
 
 static void hidlink_ble_command_get_status() {
 
     ESP_LOGI(TAG, "%s", __func__);
-
+    hidlink_ble_ack_response(hidlink.status);
 }
 
 
 static void hidlink_ble_command_start_scan() {
 
     ESP_LOGI(TAG, "%s", __func__);
+    hidlink_set_command(HIDLINK_COMMAND_SCAN_START);
+    hidlink_ble_ack_response(0x06);
 }
 
 
 static void hidlink_ble_command_stop_scan() {
 
     ESP_LOGI(TAG, "%s", __func__);
+    hidlink_set_command(HIDLINK_COMMAND_SCAN_STOP);
+    hidlink_ble_ack_response(0x06);
 }
 
 
 static void hidlink_ble_command_attach_to_peripheral() {
 
     ESP_LOGI(TAG, "%s", __func__);
+    // #TODO: attach to peripheral
+    hidlink_ble_ack_response(0x06);
 }
 
 
@@ -370,7 +456,7 @@ void hidlink_ble_protocol_parser(uint8_t *data, uint32_t len) {
 
     uint8_t rx_data;
 
-    if (hidlink.rx.buffer == NULL) {
+    if (hidlink.rx.data == NULL) {
         ESP_LOGE(TAG, "rx buffer invalid pointer!");
     }
     else {
@@ -380,14 +466,14 @@ void hidlink_ble_protocol_parser(uint8_t *data, uint32_t len) {
             rx_data = *data++;
 
             if (hidlink.rx.push < HIDLINK_PROTOCOL_BUFFER_LEN) {
-                hidlink.rx.buffer[hidlink.rx.push++] = rx_data;
+                hidlink.rx.data[hidlink.rx.push++] = rx_data;
             }
 
             switch (hidlink.rx.state) {
 
                 case HIDLINK_PROTOCOL_STATE_HEADER: {
                     if (rx_data == 0x3e) {
-                        hidlink.rx.buffer[0] = rx_data;
+                        hidlink.rx.data[0] = rx_data;
                         hidlink.rx.push = 1;
                         hidlink.rx.state = HIDLINK_PROTOCOL_STATE_COMMAND;
                     }
@@ -432,12 +518,12 @@ void hidlink_ble_protocol_parser(uint8_t *data, uint32_t len) {
                     uint8_t checksum = 0;
 
                     for (i = 0; i < hidlink.rx.push; i++) {
-                        checksum += hidlink.rx.buffer[i];
+                        checksum += hidlink.rx.data[i];
                     }
 
                     if (checksum == 0) {
 
-                        switch ((hidlink_protocol_command_t) hidlink.rx.buffer[1]) {
+                        switch ((hidlink_protocol_command_t) hidlink.rx.data[1]) {
 
                             case HIDLINK_PROTOCOL_COMMAND_GET_STATUS: {
                                 hidlink_ble_command_get_status();
@@ -478,4 +564,38 @@ void hidlink_ble_protocol_parser(uint8_t *data, uint32_t len) {
 void hidlink_ble_set_char_handle(uint16_t char_handle) {
 
     hidlink.ble.chr_handle = char_handle;
+}
+
+
+void hidlink_ble_set_mtu(uint16_t mtu) {
+
+    hidlink.ble.mtu_size = mtu;
+}
+
+
+void hidlink_set_ble_data(esp_gatt_if_t gatts_if, uint16_t conn_id, esp_bd_addr_t *bda) {
+
+    hidlink.ble.conn_id = conn_id;
+    hidlink.ble.gatts_if = gatts_if;
+    memcpy(&hidlink.ble.remote_bda, bda, sizeof(esp_bd_addr_t));
+}
+
+
+void hidlink_set_rx_cccd(uint16_t val) {
+
+    if(val == 1) {
+        ESP_LOGW(TAG, "%s, notify enabled", __func__);
+        hidlink.ble.flags.bits.notify_enable = 1;
+        hidlink.ble.flags.bits.indicate_enable = 0;
+    }
+    else if(val == 2) {
+        ESP_LOGW(TAG, "%s, indicate enabled", __func__);
+        hidlink.ble.flags.bits.notify_enable = 0;
+        hidlink.ble.flags.bits.indicate_enable = 1;
+    }
+    else {
+        ESP_LOGW(TAG, "%s, notify and indicate disabled", __func__);
+        hidlink.ble.flags.bits.notify_enable = 0;
+        hidlink.ble.flags.bits.indicate_enable = 0;
+    }
 }
