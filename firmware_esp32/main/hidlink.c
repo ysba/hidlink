@@ -275,8 +275,14 @@ void hidlink_main_task() {
                                     bda2str(hidlink.hid_list.bd_addr[i], bda_str, 18));
                             }
                         }
-                    
-                        // #TODO: send results to app
+                    }
+                    else if (command == HIDLINK_COMMAND_SET_STATUS_CONNECTED) {
+
+                        hidlink.status = HIDLINK_STATUS_CONNECTED;
+                    }
+                    else if (command == HIDLINK_COMMAND_SET_STATUS_IDLE) {
+                        
+                        hidlink.status = HIDLINK_STATUS_IDLE;
                     }
                 }
                 break;
@@ -445,9 +451,27 @@ static void hidlink_ble_command_stop_scan() {
 
 static void hidlink_ble_command_attach_to_peripheral() {
 
+    uint32_t index;
+
     ESP_LOGI(TAG, "%s", __func__);
-    // #TODO: attach to peripheral
-    hidlink_ble_ack_response(0x06);
+
+    index = hidlink.rx.data[3];
+
+    if (index == 0) {
+
+        hidlink_ble_ack_response(0x15);
+    }
+    else if (index <= hidlink.hid_list.index) {
+
+        index -= 1;
+        esp_bt_hid_host_connect(hidlink.hid_list.bd_addr[index]);
+        hidlink_ble_ack_response(0x06);
+
+    }
+    else {
+
+        hidlink_ble_ack_response(0x15);
+    }
 }
 
 
