@@ -69,7 +69,8 @@ The BLE interface is used in ``hidlink`` for configuration using the mobile app.
     * ``0x15`` FAIL
 ##### 0x05 HID peripheral scan data
 * No request, responses comes after command ``0x02`` whenever a HID peripheral is scanned
-* Response: ``0x3C`` ``0x05`` ``len`` ``address`` ``name`` ``checksum``
+* Response: ``0x3C`` ``0x05`` ``len`` ``index`` ``address`` ``name`` ``checksum``
+  * ``index``: Index of device of available HID peripherals to be used in command 0x04 (1 byte)
   * ``len``: Data field lend in bytes (1 byte)
   * ``address``: HID peripheral MAC address (6 bytes)
   * ``name``: HID peripheral name (``len`` - 6 bytes)

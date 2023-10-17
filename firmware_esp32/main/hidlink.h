@@ -8,6 +8,8 @@
 
 #define HIDLINK_PROTOCOL_BUFFER_LEN         64
 
+#define HIDLINK_PERIPHERAL_MAX_NAME_LEN     32
+
 typedef enum {
     HIDLINK_STATE_API_INIT = 0,
     HIDLINK_STATE_API_DEINIT,
@@ -60,5 +62,6 @@ void hidlink_ble_set_char_handle(uint16_t char_handle);
 void hidlink_ble_set_mtu(uint16_t mtu);
 void hidlink_set_ble_data(esp_gatt_if_t gatts_if, uint16_t conn_id, esp_bd_addr_t *bda);
 void hidlink_set_rx_cccd(uint16_t val);
+void hidlink_send_hid_peripheral_data(uint8_t peripheral_index, esp_bd_addr_t *bd_addr, char *name);
 
 #endif

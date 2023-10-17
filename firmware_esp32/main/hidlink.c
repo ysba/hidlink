@@ -17,7 +17,7 @@ typedef struct {
     struct {
         uint32_t index;
         esp_bd_addr_t bd_addr[HIDLINK_DEVICES_NUMBER];
-        char name[HIDLINK_DEVICES_NUMBER][ESP_BT_GAP_MAX_BDNAME_LEN];
+        char name[HIDLINK_DEVICES_NUMBER][HIDLINK_PERIPHERAL_MAX_NAME_LEN];
     } hid_list;
 
     struct {
@@ -328,18 +328,18 @@ void hidlink_add_hid_device(esp_bd_addr_t *bd_addr, char *name) {
 
     name_len = strlen(name);
 
-    if (name_len > (ESP_BT_GAP_MAX_BDNAME_LEN - 1))
-        name_len = ESP_BT_GAP_MAX_BDNAME_LEN - 1;
+    if (name_len > (HIDLINK_PERIPHERAL_MAX_NAME_LEN - 1))
+        name_len = HIDLINK_PERIPHERAL_MAX_NAME_LEN - 1;
 
     if (i < HIDLINK_DEVICES_NUMBER) {
 
         memcpy(&hidlink.hid_list.bd_addr[i], bd_addr, sizeof(esp_bd_addr_t));
         memset(&hidlink.hid_list.name[i], 0, ESP_BT_GAP_MAX_BDNAME_LEN);
         memcpy(&hidlink.hid_list.name[i], name, name_len);
+        hidlink_send_hid_peripheral_data(hidlink.hid_list.index + 1, bd_addr, name);
         hidlink.hid_list.index++;
     }
 }
-
 
 
 void hidlink_ble_indicate() {
@@ -396,7 +396,6 @@ void hidlink_ble_indicate() {
     }
 }
             
-
 
 static void hidlink_ble_ack_response(uint8_t ack_val) {
 
@@ -598,4 +597,38 @@ void hidlink_set_rx_cccd(uint16_t val) {
         hidlink.ble.flags.bits.notify_enable = 0;
         hidlink.ble.flags.bits.indicate_enable = 0;
     }
+}
+
+
+void hidlink_send_hid_peripheral_data(uint8_t peripheral_index, esp_bd_addr_t *bd_addr, char *name) {
+
+    uint8_t checksum = 0;
+    uint32_t i;
+    uint32_t index = 0;
+
+    if (strlen(name) > (HIDLINK_PERIPHERAL_MAX_NAME_LEN))
+        name[HIDLINK_PERIPHERAL_MAX_NAME_LEN] = 0;
+
+    hidlink.tx.data[index++] = 0x3c;
+    hidlink.tx.data[index++] = HIDLINK_PROTOCOL_COMMAND_PERIPHERAL_SCAN_DATA;
+    hidlink.tx.data[index++] = 1 + sizeof(esp_bd_addr_t) + strlen(name);
+    hidlink.tx.data[index++] = peripheral_index;
+
+
+    memcpy(&hidlink.tx.data[index], (uint8_t *) bd_addr, sizeof(esp_bd_addr_t));
+    index += sizeof(esp_bd_addr_t);
+
+    memcpy(&hidlink.tx.data[index], (uint8_t *) name, strlen(name));
+    index += strlen(name);
+
+    for (i = 0; i < index; i++) {
+        checksum += hidlink.tx.data[i];
+    }
+
+    hidlink.tx.data[index++] = (checksum ^ ((uint8_t) 0xff)) + 1;
+
+    hidlink.tx.len = index;
+    hidlink.tx.index = 0;
+
+    hidlink_ble_indicate();
 }
