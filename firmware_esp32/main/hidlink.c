@@ -123,7 +123,7 @@ void hidlink_main_task() {
                 esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
                 esp_bluedroid_config_t bluedroid_cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
                 uart_config_t uart_config = {
-                    .baud_rate = 921600,
+                    .baud_rate = 115200,
                     .data_bits = UART_DATA_8_BITS,
                     .parity = UART_PARITY_DISABLE,
                     .stop_bits = UART_STOP_BITS_1,
