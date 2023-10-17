@@ -9,6 +9,7 @@ pico_sdk_init()
 add_executable(hidlink
     main.c
     usb_descriptors.c
+    hidlink_uart.c
     )
 
 target_include_directories(hidlink PUBLIC ${CMAKE_CURRENT_LIST_DIR})
