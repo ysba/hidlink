@@ -159,8 +159,8 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
 
             break;
         }
-    	/* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+    	
+
         case ESP_GATTS_WRITE_EVT: {
             ESP_LOGD(TAG, "ESP_GATTS_WRITE_EVT");
             ESP_LOG_BUFFER_HEX_LEVEL(TAG, p_data->write.value, p_data->write.len, ESP_LOG_DEBUG);
@@ -179,78 +179,30 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
             }
       	 	break;
     	}
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-    	// case ESP_GATTS_EXEC_WRITE_EVT:{
-
-        //     // int handle = dvis_get_handle_from_conn_id(p_data->connect.conn_id);
-
-        //     // if(handle >= 0 && handle < DVIS_PARSER_INSTANCES) {
-
-        //     //     res = find_char_and_desr_index(p_data->write.handle);
-
-        //     //     ESP_LOGD(TAG, 
-        //     //         "write exec, conn id %d, handle %d, res %d",
-        //     //         p_data->connect.conn_id,
-        //     //         handle,
-        //     //         res
-        //     //     );
-
-        //     //     if(p_data->exec_write.exec_write_flag == true) {
-
-        //     //         ESP_LOGD(TAG, "exec_write_flag 1");
-
-        //     //         if(res == SPP_IDX_SPP_TX_VAL) {
-
-        //     //             //print_write_buffer();
-    	//     //             //free_write_buffer();
-        //     //             ESP_LOGI(TAG, "write exec tx");
-                        
-        //     //         }
-        //     //     }
-        //     //     else {
-
-        //     //         ESP_LOGD(TAG, "exec_write_flag 0");
-        //     //     }
-        //     // }
-        //     // else {
-
-        //     //     ESP_LOGW(TAG, "write error, invalid handle %d", handle);
-        //     // }
-    	//     break;
-    	// }
-    	/* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+    	
+        
         case ESP_GATTS_MTU_EVT: {
-
-            // uint16_t handle;
-
-            // handle = dvis_get_handle_from_conn_id(p_data->connect.conn_id);
-
-            // dvis_set_mtu(handle, p_data->mtu.mtu);
-
-            ESP_LOGD(TAG, "ESP_GATTS_MTU_EVT, mtu: %d", 
-                p_data->mtu.mtu);
-            
+            ESP_LOGD(TAG, "ESP_GATTS_MTU_EVT, mtu: %d", p_data->mtu.mtu);
+            hidlink_ble_set_mtu(p_data->mtu.mtu);
     	    break;
         }
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+        
+
         case ESP_GATTS_CONF_EVT: {
             ESP_LOGD(TAG, "ESP_GATTS_CONF_EVT");
             // #TODO: use this event when the total amount of data to send is greater than mtu.
             // after every chunk of data sent, this event is called so the remaining data can be sent.
             break;
         }
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+        
+
     	case ESP_GATTS_CONNECT_EVT: {
             ESP_LOGD(TAG, "ESP_GATTS_CONNECT_EVT");
             hidlink_set_ble_data(gatts_if, p_data->connect.conn_id, &p_data->connect.remote_bda);
         	break;
         }
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+        
+
     	case ESP_GATTS_DISCONNECT_EVT: {
             ESP_LOGD(TAG, "ESP_GATTS_CONNECT_EVT");
             esp_bt_gap_cancel_discovery();
@@ -258,12 +210,13 @@ void gatts_cdtp_cb(esp_gatts_cb_event_t event,esp_gatt_if_t gatts_if,esp_ble_gat
     	    break;
         }
 
+
         case ESP_GATTS_START_EVT: {
             ESP_LOGD(TAG, "ESP_GATTS_START_EVT");
             break;
         }
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
-        /* . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . */
+    
+
         default: {
             ESP_LOGW(TAG, "UNEXPECTED GATTS EVENT: %d", event);
             break;
