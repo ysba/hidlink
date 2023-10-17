@@ -30,6 +30,10 @@
 #include <esp_gap_ble_api.h>
 #include <esp_gatts_api.h>
 
+#include <driver/uart.h>
+#include <driver/gpio.h>
+
+#include "hardware.h"
 #include "hidlink.h"
 #include "bt_gap.h"
 #include "bt_hid_host.h"
