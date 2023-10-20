@@ -703,7 +703,7 @@ void hidlink_send_hid_report_to_uart(uint8_t *data, uint32_t len) {
     }
 
     buf[tx_count++] = 0xaa;
-    buf[tx_count++] = 3 + len;
+    buf[tx_count++] = len;
     memcpy(&buf[2], data, len);
     tx_count += len;
 
