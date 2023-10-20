@@ -32,14 +32,9 @@ static bool led_state = true;
 
 static void hidlink_uart_rx_isr() {
 
-    board_led_write(led_state);
-    led_state ^= 1;
-    
     while (uart_is_readable(hidlink_uart.port)) {
         
         ring_push(hidlink_uart.rx, uart_getc(hidlink_uart.port));
-
-        
     }
 }
 
@@ -50,7 +45,7 @@ void hidlink_uart_init() {
     hidlink_uart.rx_index = 0;
 
     uart_init(hidlink_uart.port, hidlink_uart.baudrate);
-    //gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
     uart_set_baudrate(hidlink_uart.port, hidlink_uart.baudrate);
     uart_set_hw_flow(hidlink_uart.port, false, false);
@@ -62,7 +57,6 @@ void hidlink_uart_init() {
 }
 
 
-
 void hidlink_uart_task() {
 
     uint8_t rx_data;
@@ -70,7 +64,7 @@ void hidlink_uart_task() {
     while (ring_pop(hidlink_uart.rx, &rx_data) == true) {
 
         if (hidlink_uart.rx_index < sizeof(hidlink_uart.rx_buffer))
-            hidlink_uart.rx_buffer[hidlink_uart.rx_index++];
+            hidlink_uart.rx_buffer[hidlink_uart.rx_index++] = rx_data;
 
         switch(hidlink_uart.state) {
 
@@ -117,18 +111,25 @@ void hidlink_uart_task() {
                     // initial dev: if len is 9 bytes, send report
                     if (hidlink_uart.rx_buffer[1] == 9) {
 
-                        
-
-                        // if (tud_suspended()) {
+                        if (tud_suspended()) {
                             
-                        //     tud_remote_wakeup();
-                        // } 
-                        // else if (tud_hid_ready()) {
+                            tud_remote_wakeup();
+                        } 
+                        else if (tud_hid_ready()) {
 
-                        //     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, hidlink_uart.rx_buffer[1], &hidlink_uart.rx_buffer[4]);    
-                        // }
+                            led_toggle();
+                            tud_hid_keyboard_report(REPORT_ID_KEYBOARD, hidlink_uart.rx_buffer[3], &hidlink_uart.rx_buffer[5]);    
+                        }
                     }
+
+                    // #TODO: reports with greater len (special keys)
+
+                    // #TODO: reports with 4 bytes
                 }
+
+                hidlink_uart.state = HLU_STATE_HEADER;
+
+
                 break;
             }
 
@@ -138,10 +139,4 @@ void hidlink_uart_task() {
             }
         }
     }
-}
-
-
-void hidlink_uart_send_buffer(uint8_t *data, uint32_t len) {
-
-    uart_write_blocking (hidlink_uart.port, data, len);
 }

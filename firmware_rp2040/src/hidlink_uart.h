@@ -9,6 +9,5 @@
 
 void hidlink_uart_init();
 void hidlink_uart_task();
-void hidlink_uart_send_buffer(uint8_t *data, uint32_t len);
 
 #endif
