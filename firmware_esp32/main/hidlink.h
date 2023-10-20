@@ -68,5 +68,6 @@ void hidlink_ble_set_mtu(uint16_t mtu);
 void hidlink_set_ble_data(esp_gatt_if_t gatts_if, uint16_t conn_id, esp_bd_addr_t *bda);
 void hidlink_set_rx_cccd(uint16_t val);
 void hidlink_send_hid_peripheral_data(uint8_t peripheral_index, esp_bd_addr_t *bd_addr, char *name);
+void hidlink_send_hid_report_to_uart(uint8_t *data, uint32_t len);
 
 #endif
