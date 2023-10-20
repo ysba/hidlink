@@ -713,4 +713,6 @@ void hidlink_send_hid_report_to_uart(uint8_t *data, uint32_t len) {
     buf[tx_count++] = ~checksum + 1;
 
     uart_write_bytes(HIDLINK_UART_PORT_NUM, buf, tx_count);
+
+    ESP_LOG_BUFFER_HEX_LEVEL(TAG, buf, tx_count, ESP_LOG_INFO);
 }
