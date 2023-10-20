@@ -173,3 +173,10 @@ void led_blinking_task(void) {
     board_led_write(led_state);
     led_state = 1 - led_state;
 }
+
+
+void led_toggle() {
+    static bool state = false;
+    board_led_write(state);
+    state ^= 1;
+}

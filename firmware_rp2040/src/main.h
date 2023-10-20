@@ -13,4 +13,6 @@
 #include "ring.h"
 #include "hidlink_uart.h"
 
+void led_toggle();
+
 #endif
