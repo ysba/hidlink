@@ -122,6 +122,16 @@ void hidlink_main_task() {
 
                 esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
                 esp_bluedroid_config_t bluedroid_cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
+                uart_config_t uart_config = {
+                    .baud_rate = 115200,
+                    .data_bits = UART_DATA_8_BITS,
+                    .parity = UART_PARITY_DISABLE,
+                    .stop_bits = UART_STOP_BITS_1,
+                    .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                    .source_clk = UART_SCLK_DEFAULT,
+                };
+                int intr_alloc_flags = ESP_INTR_FLAG_IRAM;
+
 
                 err = nvs_flash_init();
                 if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -198,6 +208,23 @@ void hidlink_main_task() {
                     ESP_LOGE(TAG, "esp_ble_gap_config_scan_rsp_data_raw failed: %s", esp_err_to_name(err));
                     hidlink.state = HIDLINK_STATE_API_DEINIT;
                 } 
+                else if((err = uart_driver_install(HIDLINK_UART_PORT_NUM, 
+                        HIDLINK_UART_BUF_SIZE, 0, 0, NULL, intr_alloc_flags)) != ESP_OK) {
+                    ESP_LOGE(TAG, "uart_driver_install failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
+                else if((err = uart_param_config(HIDLINK_UART_PORT_NUM, &uart_config)) != ESP_OK) {
+                    ESP_LOGE(TAG, "uart_param_config failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
+                else if((err = uart_set_pin(HIDLINK_UART_PORT_NUM, 
+                        IO_UART_TX, 
+                        UART_PIN_NO_CHANGE, 
+                        UART_PIN_NO_CHANGE, 
+                        UART_PIN_NO_CHANGE)) != ESP_OK) {
+                    ESP_LOGE(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
+                    hidlink.state = HIDLINK_STATE_API_DEINIT;
+                }
                 else {
                     // api init success
                     ESP_LOGD(TAG, "%s, HIDLINK_STATE_API_INIT, ok", __func__);
@@ -655,4 +682,35 @@ void hidlink_send_hid_peripheral_data(uint8_t peripheral_index, esp_bd_addr_t *b
     hidlink.tx.index = 0;
 
     hidlink_ble_indicate();
+}
+
+
+void hidlink_send_hid_report_to_uart(uint8_t *data, uint32_t len) {
+
+    uint8_t buf[32] = {0};
+    uint32_t tx_count = 0;
+    uint32_t i;
+    uint8_t checksum = 0;
+
+    // 0xaa
+    // len (max = sizeof(buf) - 3)
+    // data[n]
+    // checksum
+
+    if (len > (sizeof(buf) - 3)) {
+        ESP_LOGW(TAG, "%s, invalid len", __func__);
+        return;
+    }
+
+    buf[tx_count++] = 0xaa;
+    buf[tx_count++] = 3 + len;
+    memcpy(&buf[2], data, len);
+    tx_count += len;
+
+    for (i = 0; i < tx_count; i++)
+        checksum += buf[i];
+
+    buf[tx_count++] = ~checksum + 1;
+
+    uart_write_bytes(HIDLINK_UART_PORT_NUM, buf, tx_count);
 }

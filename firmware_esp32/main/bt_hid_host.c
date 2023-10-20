@@ -60,13 +60,11 @@ void bt_hid_host_event_handler(esp_hidh_cb_event_t event, esp_hidh_cb_param_t *p
         }
 
         case ESP_HIDH_GET_DSCP_EVT: {
-            // 03
             ESP_LOGD(TAG, "%s, ESP_HIDH_GET_DSCP_EVT", __func__);
             break;
         }
 
         case ESP_HIDH_ADD_DEV_EVT: {
-            // 04
             ESP_LOGD(TAG, "%s, ESP_HIDH_ADD_DEV_EVT", __func__);
             break;
         }
@@ -87,10 +85,9 @@ void bt_hid_host_event_handler(esp_hidh_cb_event_t event, esp_hidh_cb_param_t *p
         }
 
         case ESP_HIDH_DATA_IND_EVT: {
-            // 05, 06, 06
+            hidlink_send_hid_report_to_uart(param->data_ind.data, param->data_ind.len);
             ESP_LOGD(TAG, "%s, ESP_HIDH_DATA_IND_EVT", __func__);
-
-            ESP_LOG_BUFFER_HEX_LEVEL(TAG, param->data_ind.data, param->data_ind.len, ESP_LOG_INFO);
+            ESP_LOG_BUFFER_HEX_LEVEL(TAG, param->data_ind.data, param->data_ind.len, ESP_LOG_DEBUG);
             break;
         }
 
