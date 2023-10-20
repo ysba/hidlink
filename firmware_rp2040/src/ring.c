@@ -88,8 +88,8 @@ bool ring_pop(ring_handle_t handle, ring_data_t *data) {
 
     ring_buffer_t *r;
     bool ret_val = false;
-
-    if (handle < RING_HANDLE_MAX && ring[handle].flags.bits.busy == false) {
+    
+    if (handle < RING_HANDLE_MAX && ring[handle].flags.bits.busy == true) {
 
         r = &ring[handle];
 
