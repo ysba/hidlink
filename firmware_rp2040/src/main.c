@@ -31,7 +31,8 @@ int main() {
 
     while (1) {
         tud_task();
-        led_blinking_task();
+        hidlink_uart_task();
+        //led_blinking_task();
         //hid_task();
     }
 }
