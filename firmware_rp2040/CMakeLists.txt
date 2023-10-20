@@ -9,6 +9,7 @@ pico_sdk_init()
 add_executable(hidlink
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/usb_descriptors.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ring.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hidlink_uart.c
     )
 

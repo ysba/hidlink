@@ -10,6 +10,7 @@
 #include "usb_descriptors.h"
 
 #include "tusb_config.h"
+#include "ring.h"
 #include "hidlink_uart.h"
 
 #endif
