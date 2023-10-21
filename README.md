@@ -52,6 +52,15 @@ Based on ESP32 and Raspberry Pi Pico.
 
 ## Breadboard
 
+![Breadboard](doc/hidlink_bb.png)
+
+Layout made with [Fritzing](https://fritzing.org/).
+
+* ESP32-DevKitV1 pin 7 ``U2_TXD`` connects to RPI Pico pin 2 ``UART0 RX``
+* Connect together at least one GND point from each board
+  * ESP32-DevKitV1 pin 2 ``GND``
+  * RPI Pico pin 38 ``GND``
+
 [Back to top](#table-of-contents)
 
 ## PCB
