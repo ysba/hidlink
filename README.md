@@ -56,10 +56,14 @@ Based on ESP32 and Raspberry Pi Pico.
 
 Layout made with [Fritzing](https://fritzing.org/).
 
-* ESP32-DevKitV1 pin 7 ``U2_TXD`` connects to RPI Pico pin 2 ``UART0 RX``
-* Connect together at least one GND point from each board
-  * ESP32-DevKitV1 pin 2 ``GND``
-  * RPI Pico pin 38 ``GND``
+* Power and USB communication are plugged via the **Raspberry Pi Pico** board (micro USB cable).
+  * **ESP32-DevKitV1** ``VIN`` connects to **Raspberry Pi Pico** ``VBUS``.
+  * **ESP32-DevKitV1** ``GND`` connects to **Raspberry Pi Pico** ``GND``.
+* **ESP32-DevKitV1** board is powered via the ``RED`` and ``BLUE`` wires.
+* Communication between **ESP32-DevKitV1** and **Raspberry Pi Pico** is made via the orange wire:
+  * **ESP32-DevKitV1** ``U2_TXD`` connects to **Raspberry Pi Pico** ``UART0 RX``.
+  * The 1K resistor is not really needed, but is advisable to avoid  damaging of the digital pins due electromagnetic induction.
+  
 
 [Back to top](#table-of-contents)
 
