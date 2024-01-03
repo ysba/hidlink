@@ -206,7 +206,6 @@ Layout made with [Fritzing](https://fritzing.org/).
   ```sh
   cd [path_where_hidlink_repo_is]/hidlink/firmware_rp2040
   mkdir build
-  cd build
   cmake -DPICO_SDK_PATH=/home/[user_name]/pico-sdk -B build -GNinja
   ```
 * Build
