@@ -1,0 +1,9 @@
+[submodule "hidlink-bluetooth"]
+	path = hidlink-bluetooth
+	url = https://github.com/ysba/hidlink-bluetooth
+[submodule "hidlink-usb"]
+	path = hidlink-usb
+	url = https://github.com/ysba/hidlink-usb
+[submodule "hidlink-mobile"]
+	path = hidlink-mobile
+	url = https://github.com/ysba/hidlink-mobile
