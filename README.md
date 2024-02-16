@@ -117,8 +117,8 @@ Layout made with [Fritzing](https://fritzing.org/).
 * ``header``
   * Packet start marker
   * Length: 1 byte
-  * Fixed ``0x3E`` for request
-  * Fixed ``0x3C`` for reponse
+  * Fixed ``0x3e`` for request
+  * Fixed ``0x3c`` for reponse
 * ``command``
   * Command code
   * Length: 1 byte
