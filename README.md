@@ -92,8 +92,6 @@ Layout made with [Fritzing](https://fritzing.org/).
 ### Device name
 ``hidlink``
 
-[Back to top](#table-of-contents)
-
 ### GATT Server
 
 #### CDTP - Custom Data Transfer Profile
@@ -107,8 +105,6 @@ Layout made with [Fritzing](https://fritzing.org/).
       * Receiving indications from this characteristic
       * Receiving notifications from this characteristic
     * Requests end responses follow the **hidlink BLE Protocol** described [below](#hidlink-ble-protocol).
-
-[Back to top](#table-of-contents)
 
 ### hidlink BLE Protocol
 
@@ -202,8 +198,6 @@ Communication between ESP32 and RP2040 is performed via UART.
 * Parity: NONE
 * Stop bits: ONE
 
-[Back to top](#table-of-contents)
-
 ### Frame pattern
 ``header`` ``command`` ``len`` ``data`` ``checksum``
 * ``header``
@@ -224,8 +218,6 @@ Communication between ESP32 and RP2040 is performed via UART.
 * ``checksum``
   * Two's complement of the 8 bit truncated sum of all previous fields
   * Suming all bytes of all fields to ``checksum`` value must result in ``0x00`` for a valid packet
-
-[Back to top](#table-of-contents)
 
 ### UART Protocol Commands
 
