@@ -232,7 +232,7 @@ Returns the current status of RP2040 firmware.
 
 #### 0x02 Send HID report
 Sends HID report (ie. keyboard key stroke) to be sent via USB by RP2040.
-* Request: ``0xaa`` ``0x02`` ``hid_report` ``checksum``
+* Request: ``0xaa`` ``0x02`` ``hid_report`` ``checksum``
   * ``hid_report``: HID report data as receive from Bluetooth peripheral. It will be sent to USB in the same format.
 * Response: ``0xa5`` ``0x02`` ``0x01`` ``ack`` ``checksum``
   * ``ack``
