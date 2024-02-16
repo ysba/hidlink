@@ -122,7 +122,7 @@ Layout made with [Fritzing](https://fritzing.org/).
 * ``command``
   * Command code
   * Length: 1 byte
-  * See available codes [below](#commands)
+  * See available codes [below](#ble-protocol-commands)
 * ``len``
   * Length of ``data`` field in bytes
   * Length: 1 byte
@@ -133,7 +133,7 @@ Layout made with [Fritzing](https://fritzing.org/).
   * Two's complement of the 8 bit truncated sum of all previous fields
   * Suming all bytes of all fields to ``checksum`` value must result in ``0x00`` for a valid packet
 
-#### Commands
+#### BLE Protocol Commands
 
 ##### 0x01 Get HIDLINK Status
 Returns the current status of HIDLINK device.
@@ -194,9 +194,59 @@ Stops scanning of peripherals if HIDLINK is in scanning mode. If not in scanning
 
 ## UART
 
+Communication between ESP32 and RP2040 is performed via UART.
+
+### Configuration
+* Baudrate: 115200 bps
+* Data bits: 8
+* Parity: NONE
+* Stop bits: ONE
+
 [Back to top](#table-of-contents)
 
-### hidlink UART Protocol
+### Frame pattern
+``header`` ``command`` ``len`` ``data`` ``checksum``
+* ``header``
+  * Packet start marker
+  * Length: 1 byte
+  * Fixed ``0xaa`` for request
+  * Fixed ``0xa5`` for reponse
+* ``command``
+  * Command code
+  * Length: 1 byte
+  * See available codes [below](#uart-protocol-commands)
+* ``len``
+  * Length of ``data`` field in bytes
+  * Length: 1 byte
+* ``data``
+  * Data field
+  * Length: Value of ``len`` bytes
+* ``checksum``
+  * Two's complement of the 8 bit truncated sum of all previous fields
+  * Suming all bytes of all fields to ``checksum`` value must result in ``0x00`` for a valid packet
+
+[Back to top](#table-of-contents)
+
+### UART Protocol Commands
+
+#### 0x01 Status request
+Returns the current status of RP2040 firmware.
+* Request: ``0xaa`` ``0x01`` ``0x00`` ``0x55``
+* Response: ``0xa5`` ``0x01`` ``0x01`` ``status`` ``checksum``
+  * ``status``
+    * ``0x01`` TO BE DEFINED
+    * ``0x02`` TO BE DEFINED
+    * ``0x03`` TO BE DEFINED
+
+#### 0x02 Send HID report
+Sends HID report (ie. keyboard key stroke) to be sent via USB by RP2040.
+* Request: ``0xaa`` ``0x02`` ``hid_report` ``checksum``
+  * ``hid_report``: HID report data as receive from Bluetooth peripheral. It will be sent to USB in the same format.
+* Response: ``0xa5`` ``0x02`` ``0x01`` ``ack`` ``checksum``
+  * ``ack``
+    * ``0x06`` SUCCESS
+    * ``0x15`` FAIL
+
 
 [Back to top](#table-of-contents)
 
