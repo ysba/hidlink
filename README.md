@@ -122,7 +122,7 @@ Layout made with [Fritzing](https://fritzing.org/).
 * ``command``
   * Command code
   * Length: 1 byte
-  * See available codes below
+  * See available codes [below](#commands)
 * ``len``
   * Length of ``data`` field in bytes
   * Length: 1 byte
@@ -136,38 +136,59 @@ Layout made with [Fritzing](https://fritzing.org/).
 #### Commands
 
 ##### 0x01 Get HIDLINK Status
-* Request: ``0x3E`` ``0x01`` ``0x00`` ``0xC1``
-* Response: ``0x3C`` ``0x01`` ``0x01`` ``status`` ``checksum``
+Returns the current status of HIDLINK device.
+* Request: ``0x3e`` ``0x01`` ``0x00`` ``0xc1``
+* Response: ``0x3c`` ``0x01`` ``0x01`` ``status`` ``checksum``
   * ``status``
-    * ``0x01`` IDLE
+    * ``0x01`` NOT CONNECTED
     * ``0x02`` SCANNING
-    * ``0X03`` CONNECTED
-##### 0x02 Start HID peripheral scan
-* Request: ``0x3E`` ``0x02`` ``0x00`` ``0xC0``
-* Response: ``0x3C`` ``0x02`` ``0x01`` ``ack`` ``checksum``
+    * ``0x03`` CONNECTED
+    * ``0x04`` ERROR ESP32
+    * ``0x05`` ERROR RP2040
+##### 0x02 Start peripheral scan
+Starts scanning of nearby peripherals. The scanning process lasts for 10 seconds. Whenever a scan process is started, the list of scanned devices previously is cleared prior to the new scanning start.
+* Request: ``0x3e`` ``0x02`` ``0x00`` ``0xc0``
+* Response: ``0x3c`` ``0x02`` ``0x01`` ``ack`` ``checksum``
   * ``ack``
     * ``0x06`` SUCCESS
     * ``0x15`` FAIL
-##### 0x03 Stop HID peripheral scan
-* Request: ``0x3E`` ``0x03`` ``0x00`` ``0xBF``
+##### 0x03 Stop peripheral scan
+Stops scanning of peripherals if HIDLINK is in scanning mode. If not in scanning mode, this command has no effect. If there are any peripherals in the scanned devices list, the devices are kept and can be attached to.
+* Request: ``0x3e`` ``0x03`` ``0x00`` ``0xbf``
 * Response: ``0x3C`` ``0x03`` ``0x01`` ``ack`` ``checksum``
   * ``ack``
     * ``0x06`` SUCCESS
     * ``0x15`` FAIL
-##### 0x04 Attach to HID peripheral
-* Request: ``0x3E`` ``0x04`` ``0x01`` ``index`` ``checksum``
-  * ``index``: Index of HID peripheral as in scan responses (starts in 1)
-* Response: ``0x3C`` ``0x04`` ``0x01`` ``ack`` ``checksum``
-  * ``ack``
-    * ``0x06`` SUCCESS
-    * ``0x15`` FAIL
-##### 0x05 HID peripheral scan data
-* No request, responses comes after command ``0x02`` whenever a HID peripheral is scanned
-* Response: ``0x3C`` ``0x05`` ``len`` ``index`` ``address`` ``name`` ``checksum``
-  * ``index``: Index of device of available HID peripherals to be used in command 0x04 (1 byte)
+##### 0x04 Get scanned peripheral count
+* Request: ``0x3e`` ``0x04`` ``0x00`` ``0xbe``
+* Response: ``0x3c`` ``0x04`` ``0x01`` ``count`` ``checksum``
+  * ``count``: Number of valid HID peripherals found during scanning process.
+##### 0x05 Get scanned peripheral data by index
+* Request: ``0x3e`` ``0x05`` ``0x01`` ``index`` ``checksum``
+  * ``index``: Index of HID peripheral in scan list. Starts in 1. Maximum value is ``count`` from command ``0x04``.
+* Response: ``0x3c`` ``0x05`` ``len`` ``address`` ``name`` ``checksum``
   * ``len``: Data field lend in bytes (1 byte)
   * ``address``: HID peripheral MAC address (6 bytes)
   * ``name``: HID peripheral name (``len`` - 6 bytes)
+##### 0x06 Attach to peripheral by index
+* Request: ``0x3e`` ``0x06`` ``0x01`` ``index`` ``checksum``
+  * ``index``: Index of HID peripheral in scan list. Starts in 1. Maximum value is ``count`` from command ``0x04``.
+* Response: ``0x3c`` ``0x06`` ``0x01`` ``ack`` ``checksum``
+  * ``ack``
+    * ``0x06`` SUCCESS
+    * ``0x15`` FAIL
+##### 0x07 Get attached peripheral info
+* Request: ``0x3e`` ``0x07`` ``0x00`` ``0xbb``
+* Response: ``0x3c`` ``0x07`` ``len`` ``address`` ``name`` ``checksum``
+  * ``len``: Data field lend in bytes (1 byte)
+  * ``address``: HID peripheral MAC address (6 bytes)
+  * ``name``: HID peripheral name (``len`` - 6 bytes)
+##### 0x08 Unattach peripheral
+* Request: ``0x3e`` ``0x08`` ``0x00`` ``0xba``
+* Response: ``0x3c`` ``0x08`` ``0x01`` ``ack`` ``checksum``
+  * ``ack``
+    * ``0x06`` SUCCESS
+    * ``0x15`` FAIL
 
 [Back to top](#table-of-contents)
 
