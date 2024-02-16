@@ -23,7 +23,9 @@ Based on ESP32 and Raspberry Pi Pico.
     * [GATT Server](#gatt-server)
     * [hidlink BLE Protocol](#hidlink-ble-protocol)
   * [UART](#uart)
-    * [hidlink UART Protocol](#hidlink-uart-protocol)
+    * [UART Configuration](#uart-configuration)
+    * [UART Frame Pattern](#uart-frame-pattern)
+    * [UART Commands](#uart-commands)
 * [Development](#development)
   * [ESP32 Development](#esp32-development)
   * [Raspberry Pi Pico Development](#raspberry-pi-pico-development)
@@ -192,13 +194,13 @@ Stops scanning of peripherals if HIDLINK is in scanning mode. If not in scanning
 
 Communication between ESP32 and RP2040 is performed via UART.
 
-### Configuration
+### UART Configuration
 * Baudrate: 115200 bps
 * Data bits: 8
 * Parity: NONE
 * Stop bits: ONE
 
-### Frame pattern
+### UART Frame Pattern
 ``header`` ``command`` ``len`` ``data`` ``checksum``
 * ``header``
   * Packet start marker
@@ -208,7 +210,7 @@ Communication between ESP32 and RP2040 is performed via UART.
 * ``command``
   * Command code
   * Length: 1 byte
-  * See available codes [below](#uart-protocol-commands)
+  * See available codes [below](#uart-commands)
 * ``len``
   * Length of ``data`` field in bytes
   * Length: 1 byte
@@ -219,7 +221,7 @@ Communication between ESP32 and RP2040 is performed via UART.
   * Two's complement of the 8 bit truncated sum of all previous fields
   * Suming all bytes of all fields to ``checksum`` value must result in ``0x00`` for a valid packet
 
-### UART Protocol Commands
+### UART Commands
 
 #### 0x01 Status request
 Returns the current status of RP2040 firmware.
